@@ -235,6 +235,7 @@ serve(async (req) => {
     }
 
     console.log(`Generating slides for style: ${style}`);
+    const startTime = Date.now();
 
     // Step 1: Generate slide content (text)
     const { slides: slideContents, caption } = await generateSlideContent(
@@ -245,7 +246,7 @@ serve(async (req) => {
 
     console.log(`Generated ${slideContents.length} slide texts`);
 
-    // Step 2: Generate images in parallel (batched to avoid rate limits)
+    // Step 2: Generate images sequentially (to avoid rate limits)
     const slideResults = [];
 
     for (let i = 0; i < slideContents.length; i++) {
@@ -270,7 +271,6 @@ serve(async (req) => {
         console.log(`Slide ${i + 1} generated`);
       } catch (err) {
         console.error(`Error generating slide ${i + 1}:`, err);
-        // Continue with other slides even if one fails
         slideResults.push({
           slideNumber: i + 1,
           title: slide.title,
@@ -280,6 +280,30 @@ serve(async (req) => {
           error: err instanceof Error ? err.message : "Image generation failed",
         });
       }
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    // Step 3: Save generation log (without base64 images to save space)
+    const slidesForLog = slideResults.map(({ imageBase64: _, ...rest }) => rest);
+    try {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      await supabaseAdmin.from("generation_logs").insert({
+        user_id: userId,
+        style: style || "Классический тёплый",
+        funnel: funnel || null,
+        user_text: userText,
+        slide_count: slideResults.length,
+        caption,
+        duration_ms: durationMs,
+        slides_json: slidesForLog,
+      });
+      console.log(`Generation log saved (${durationMs}ms)`);
+    } catch (logErr) {
+      console.error("Failed to save generation log:", logErr);
     }
 
     return new Response(
