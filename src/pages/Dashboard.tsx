@@ -94,6 +94,16 @@ const Dashboard = () => {
       setResults(data.slides);
       setCaption(data.caption || null);
       toast.success("Слайды успешно сгенерированы!");
+
+      // Log generation event
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from("activity_log").insert({
+          user_id: session.user.id,
+          action: "generate_slides",
+          details: { style: styleIdToName[selectedStyle], slides_count: data.slides?.length || 0 },
+        });
+      }
     } catch (err: any) {
       console.error("Generation error:", err);
       toast.error(err.message || "Произошла ошибка при генерации");
@@ -123,6 +133,16 @@ const Dashboard = () => {
     link.download = "carousel.zip";
     link.click();
     URL.revokeObjectURL(link.href);
+
+    // Log download event
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from("activity_log").insert({
+        user_id: session.user.id,
+        action: "download_zip",
+        details: { slides_count: results?.length || 0 },
+      });
+    }
   };
 
   const copyCaption = async () => {
