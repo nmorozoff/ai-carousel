@@ -38,6 +38,48 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_logs: {
+        Row: {
+          caption: string | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          funnel: string | null
+          id: string
+          slide_count: number | null
+          slides_json: Json | null
+          style: string | null
+          user_id: string
+          user_text: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          funnel?: string | null
+          id?: string
+          slide_count?: number | null
+          slides_json?: Json | null
+          style?: string | null
+          user_id: string
+          user_text?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          funnel?: string | null
+          id?: string
+          slide_count?: number | null
+          slides_json?: Json | null
+          style?: string | null
+          user_id?: string
+          user_text?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
