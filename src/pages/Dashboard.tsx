@@ -12,18 +12,20 @@ import { toast } from "sonner";
 
 const carouselStyles = [
   { id: "classic-warm", name: "Классический тёплый" },
+  { id: "light-editorial", name: "Светлый Editorial" },
+  { id: "expert-infographic", name: "Инфографика с экспертом" },
+  { id: "dark", name: "Тёмный" },
   { id: "illustrated", name: "Иллюстрированный персонаж" },
   { id: "infographic", name: "Схемы & Инфографика" },
-  { id: "light", name: "Светлый" },
-  { id: "dark", name: "Тёмный" },
 ];
 
 const styleIdToName: Record<string, string> = {
   "classic-warm": "Классический тёплый",
+  "light-editorial": "Светлый Editorial",
+  "expert-infographic": "Инфографика с экспертом",
+  "dark": "Тёмный",
   "illustrated": "Иллюстрированный персонаж",
   "infographic": "Схемы & Инфографика",
-  "light": "Светлый",
-  "dark": "Тёмный",
 };
 
 interface SlideResult {
@@ -229,6 +231,8 @@ const Dashboard = () => {
               subtitle={
                 selectedStyle === "illustrated"
                   ? "Загрузите фото — ИИ создаст 3D-персонаж похожий на вас"
+                  : selectedStyle === "expert-infographic"
+                  ? "Загрузите фото — эксперт появится в сцене с реквизитом"
                   : "Загрузите 1-3 фото себя — ИИ вставит вас в слайды"
               }
             />

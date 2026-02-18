@@ -89,25 +89,74 @@ async function generateSlideImage(
   const isLastSlide = slideNumber === 7;
   const isFirstSlide = slideNumber === 1;
 
-  const styleDescriptions: Record<string, string> = {
-    "Классический тёплый":
-      "warm tones, beige and cream background, elegant serif typography, professional lifestyle feel, cozy and inviting",
-    "Иллюстрированный персонаж":
-      "illustrated 3D cartoon character style, vibrant colors, playful and modern, character-driven visual",
-    "Схемы & Инфографика":
-      "clean infographic style, white background, colorful icons and charts, minimal and data-driven, no faces",
-    "Светлый":
-      "bright white background, modern sans-serif typography, clean minimal layout, airy and spacious",
-    "Тёмный":
-      "dark background (#1a1a2e or #0d0d0d), neon accents, premium dark mode aesthetic, bold typography",
-  };
+  function getStyleGuide(s: string): string {
+    const styles: Record<string, string> = {
+      'Классический тёплый': `
+VISUAL STYLE: Warm Classic Premium.
+Background: Soft warm cream (#FAF7F2) with subtle warm gradient.
+Colors: Deep burgundy (#8B1A1A) for headlines, warm gold (#C9A84C) accents, dark brown body text.
+Typography: Elegant bold serif headlines, clean sans-serif body.
+Lighting: Soft natural warm golden light. Studio quality.
+Decorative: Thin gold geometric lines in corners.
+Atmosphere: Warm, trustworthy, professional wellness brand.
+Person placement: Lower center, integrated into warm scene.`,
+      'Светлый Editorial': `
+VISUAL STYLE: Light Premium Editorial — magazine cover style.
+Background: Warm white (#FAFAF8) top, soft peach-beige gradient (#F5EDE4) at bottom.
+ONE thin coral (#D4614A) line along RIGHT edge only. NO random geometric shapes floating.
+Colors: Dark navy (#1A2B4A) main headlines, coral (#D4614A) accent word or line, gray body text.
+Typography: Very large bold condensed sans-serif headlines stacked in 3-4 lines left-aligned.
+Massive size contrast between headline and body text.
+Person placement: RIGHT half of image, large, bottom-aligned, slightly cut at knees. Takes up 55% of width.
+Text placement: LEFT 45% of image, stacked vertically, lots of breathing room between elements.
+Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic. Clean, intentional.
+Person and text overlap slightly at shoulder zone.`,
+      'Инфографика с экспертом': `
+VISUAL STYLE: Expert Infographic — educational and engaging.
+Background: Clean white (#FFFFFF) or very light gray (#F8F8F8).
+Accent colors: Bright blue (#2196F3) or green (#4CAF50) for positive elements, red (#F44336) for negative/warning.
+Typography: Bold modern sans-serif headlines at top. Smaller readable body text at bottom.
+PERSON: Place expert in CENTER or LEFT of image.
+Expert physically holds or interacts with REAL PROPS relevant to the slide topic — food, objects, documents, tools.
+Props appear naturally in expert's hands or on table in front.
+INFOGRAPHIC ELEMENTS: Place diagrams, charts, comparison tables, icons, arrows, checkmarks to the RIGHT of or around the expert.
+Elements show data visually — before/after, pros/cons, step-by-step, comparison columns.
+Scene: Expert in relevant environment — kitchen, office, classroom, outdoors — matching the content topic.
+Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.`,
+      'Тёмный': `
+VISUAL STYLE: Dark Gold Premium.
+Background: Deep matte black (#0D0D0D) with subtle diagonal gold geometric lines at 30% opacity.
+Gold star light flares in upper corners.
+Colors: Gold (#C9A84C) for headlines, white for body text.
+Typography: Bold uppercase sans-serif headlines in gold.
+Lighting: Dramatic cinematic studio — golden rim light from behind, deep shadows.
+3D elements: Volumetric gold 3D objects floating to LEFT or RIGHT side at chest level only.
+NEVER place 3D objects near or behind expert's head.
+Person placement: Lower center or right, large.
+Atmosphere: Luxurious, authoritative, premium business.`,
+      'Иллюстрированный персонаж': `
+VISUAL STYLE: 3D Illustrated Character.
+If person photo provided — create stylized 3D cartoon avatar resembling them. Professional outfit, warm expressive face.
+Background: Clean white or soft pastel gradient.
+Colors: Soft pastels with coral, mint, lavender accents.
+Typography: Rounded friendly bold sans-serif.
+3D elements: Floating speech bubbles, lightbulbs, hearts, stars.
+Atmosphere: Approachable, modern, premium app illustration.`,
+      'Схемы & Инфографика': `
+VISUAL STYLE: Clean Data Infographic. NO person needed.
+Background: Pure white (#FFFFFF).
+Colors: Coral (#FF6B6B) and dark navy (#1A2B4A).
+Typography: Bold modern Montserrat-style sans-serif.
+Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
+Atmosphere: Educational, authoritative, consulting quality.`,
+    };
+    return styles[s] || styles['Классический тёплый'];
+  }
 
-  const styleDesc = styleDescriptions[style] || styleDescriptions["Классический тёплый"];
-
+  const styleDesc = getStyleGuide(style);
   const hasPhotos = userPhotos && userPhotos.length > 0;
 
   const prompt = `Instagram carousel slide ${slideNumber} of 7.
-Style: ${styleDesc}
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
 ${isLastSlide ? "This is the CTA slide — make it action-oriented with clear call to action." : ""}
 Title text on slide: "${title}"
@@ -115,6 +164,9 @@ ${content ? `Body text: "${content}"` : ""}
 ${hasPhotos && style !== "Схемы & Инфографика" ? "Include a person in the slide that matches the uploaded reference photo." : ""}
 Square format 1080x1080, professional social media post, high quality, text clearly readable, modern design.
 Do NOT add any borders or watermarks.
+
+STYLE GUIDE:
+${styleDesc}
 
 CRITICAL RULE FOR 3D ELEMENTS:
 - NEVER place 3D objects near or behind the expert's head.
