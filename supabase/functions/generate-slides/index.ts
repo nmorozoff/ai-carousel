@@ -114,7 +114,13 @@ Title text on slide: "${title}"
 ${content ? `Body text: "${content}"` : ""}
 ${hasPhotos && style !== "Схемы & Инфографика" ? "Include a person in the slide that matches the uploaded reference photo." : ""}
 Square format 1080x1080, professional social media post, high quality, text clearly readable, modern design.
-Do NOT add any borders or watermarks.`;
+Do NOT add any borders or watermarks.
+
+CRITICAL RULE FOR 3D ELEMENTS:
+- NEVER place 3D objects near or behind the expert's head.
+- 3D elements must be placed to the LEFT or RIGHT side of the frame, at chest/hand level or below — never at head level.
+- Elements should appear to rest on a surface OR float beside the expert's hands, not behind her.
+- Keep expert's head and face completely clean — no glows, halos, or objects overlapping the face area.`;
 
   // Build parts array
   const parts: any[] = [];
