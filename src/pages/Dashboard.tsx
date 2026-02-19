@@ -300,13 +300,14 @@ const Dashboard = () => {
                   {Array.from({ length: 7 }, (_, i) => (
                     <div
                       key={i}
-                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden"
+                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden relative group/slide cursor-pointer"
+                      style={{ transformOrigin: "bottom center" }}
                     >
                       {style.samples[i] && (
                         <img
                           src={style.samples[i]}
                           alt={`Образец ${i + 1}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover/slide:scale-[2.5] group-hover/slide:translate-y-[-30%]"
                         />
                       )}
                     </div>
