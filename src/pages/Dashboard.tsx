@@ -9,6 +9,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
 import JSZip from "jszip";
 import { toast } from "sonner";
+import infographicSample1 from "@/assets/samples/infographic-1.jpeg";
+import infographicSample2 from "@/assets/samples/infographic-2.jpeg";
+import infographicSample3 from "@/assets/samples/infographic-3.jpeg";
+import infographicSample4 from "@/assets/samples/infographic-4.jpeg";
+import infographicSample5 from "@/assets/samples/infographic-5.jpeg";
+import infographicSample6 from "@/assets/samples/infographic-6.jpeg";
+import infographicSample7 from "@/assets/samples/infographic-7.jpeg";
 import lightEditorialSample1 from "@/assets/samples/light-editorial-1.jpeg";
 import lightEditorialSample2 from "@/assets/samples/light-editorial-2.jpeg";
 import lightEditorialSample3 from "@/assets/samples/light-editorial-3.jpeg";
@@ -39,6 +46,7 @@ import illustratedSample6 from "@/assets/samples/illustrated-6.jpeg";
 import illustratedSample7 from "@/assets/samples/illustrated-7.jpeg";
 
 const lightEditorialSamples = [lightEditorialSample1, lightEditorialSample2, lightEditorialSample3, lightEditorialSample4, lightEditorialSample5, lightEditorialSample6, lightEditorialSample7];
+const infographicSamples = [infographicSample1, infographicSample2, infographicSample3, infographicSample4, infographicSample5, infographicSample6, infographicSample7];
 const expertSamples = [expertSample1, expertSample2, expertSample3, expertSample4, expertSample5, expertSample6, expertSample7];
 const darkSamples = [darkSample1, darkSample2, darkSample3, darkSample4, darkSample5, darkSample6, darkSample7];
 const illustratedSamples = [illustratedSample1, illustratedSample2, illustratedSample3, illustratedSample4, illustratedSample5, illustratedSample6, illustratedSample7];
@@ -49,7 +57,7 @@ const carouselStyles = [
   { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples },
   { id: "dark", name: "Тёмный", samples: darkSamples },
   { id: "illustrated", name: "Иллюстрированный персонаж", samples: illustratedSamples },
-  { id: "infographic", name: "Схемы & Инфографика", samples: [] as string[] },
+  { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples },
 ];
 
 const styleIdToName: Record<string, string> = {
