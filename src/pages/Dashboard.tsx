@@ -23,16 +23,24 @@ import darkSample4 from "@/assets/samples/dark-4.jpeg";
 import darkSample5 from "@/assets/samples/dark-5.jpeg";
 import darkSample6 from "@/assets/samples/dark-6.jpeg";
 import darkSample7 from "@/assets/samples/dark-7.jpeg";
+import illustratedSample1 from "@/assets/samples/illustrated-1.jpeg";
+import illustratedSample2 from "@/assets/samples/illustrated-2.jpeg";
+import illustratedSample3 from "@/assets/samples/illustrated-3.jpeg";
+import illustratedSample4 from "@/assets/samples/illustrated-4.jpeg";
+import illustratedSample5 from "@/assets/samples/illustrated-5.jpeg";
+import illustratedSample6 from "@/assets/samples/illustrated-6.jpeg";
+import illustratedSample7 from "@/assets/samples/illustrated-7.jpeg";
 
 const expertSamples = [expertSample1, expertSample2, expertSample3, expertSample4, expertSample5, expertSample6, expertSample7];
 const darkSamples = [darkSample1, darkSample2, darkSample3, darkSample4, darkSample5, darkSample6, darkSample7];
+const illustratedSamples = [illustratedSample1, illustratedSample2, illustratedSample3, illustratedSample4, illustratedSample5, illustratedSample6, illustratedSample7];
 
 const carouselStyles = [
   { id: "classic-warm", name: "Классический тёплый", samples: [] as string[] },
   { id: "light-editorial", name: "Светлый Editorial", samples: [] as string[] },
   { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples },
   { id: "dark", name: "Тёмный", samples: darkSamples },
-  { id: "illustrated", name: "Иллюстрированный персонаж", samples: [] as string[] },
+  { id: "illustrated", name: "Иллюстрированный персонаж", samples: illustratedSamples },
   { id: "infographic", name: "Схемы & Инфографика", samples: [] as string[] },
 ];
 
