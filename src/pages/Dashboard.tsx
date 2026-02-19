@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,6 +72,20 @@ const Dashboard = () => {
   const [userPhotos, setUserPhotos] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
+  const [hoveredSample, setHoveredSample] = useState<{ src: string; x: number; y: number } | null>(null);
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSampleMouseEnter = useCallback((src: string, e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top;
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    setHoveredSample({ src, x, y });
+  }, []);
+
+  const handleSampleMouseLeave = useCallback(() => {
+    hoverTimeout.current = setTimeout(() => setHoveredSample(null), 100);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -300,8 +314,9 @@ const Dashboard = () => {
                   {Array.from({ length: 7 }, (_, i) => (
                     <div
                       key={i}
-                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden cursor-pointer transition-all duration-300 ease-out hover:scale-[2] hover:z-50 hover:shadow-xl hover:rounded-lg"
-                      style={{ transformOrigin: "bottom center", position: "relative" }}
+                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden cursor-pointer"
+                      onMouseEnter={style.samples[i] ? (e) => handleSampleMouseEnter(style.samples[i], e) : undefined}
+                      onMouseLeave={style.samples[i] ? handleSampleMouseLeave : undefined}
                     >
                       {style.samples[i] && (
                         <img
@@ -429,6 +444,22 @@ const Dashboard = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Fixed sample preview popup */}
+      {hoveredSample && (
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: hoveredSample.x,
+            top: hoveredSample.y,
+            transform: "translateX(-50%) translateY(calc(-100% - 12px))",
+          }}
+        >
+          <div className="rounded-xl overflow-hidden shadow-2xl border border-border/40 animate-scale-in" style={{ width: "200px" }}>
+            <img src={hoveredSample.src} alt="Превью слайда" className="w-full h-auto object-cover" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
