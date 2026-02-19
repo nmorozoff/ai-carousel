@@ -284,8 +284,16 @@ const Dashboard = () => {
                   {Array.from({ length: 7 }, (_, i) => (
                     <div
                       key={i}
-                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0"
-                    />
+                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden"
+                    >
+                      {style.samples[i] && (
+                        <img
+                          src={style.samples[i]}
+                          alt={`Образец ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
                   ))}
                 </div>
               </button>
