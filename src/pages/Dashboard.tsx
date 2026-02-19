@@ -296,18 +296,18 @@ const Dashboard = () => {
                 {style.id === "infographic" && (
                   <p className="text-xs text-muted-foreground ml-7 -mt-1 mb-1">Фото не требуется — стиль на основе схем и данных</p>
                 )}
-                <div className="flex gap-2 overflow-x-auto pb-1 ml-7">
+                <div className="flex gap-2 overflow-x-auto pb-2 ml-7" style={{ paddingTop: "8px" }}>
                   {Array.from({ length: 7 }, (_, i) => (
                     <div
                       key={i}
-                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden relative group/slide cursor-pointer"
-                      style={{ transformOrigin: "bottom center" }}
+                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden cursor-pointer transition-all duration-300 ease-out hover:scale-[2] hover:z-50 hover:shadow-xl hover:rounded-lg"
+                      style={{ transformOrigin: "bottom center", position: "relative" }}
                     >
                       {style.samples[i] && (
                         <img
                           src={style.samples[i]}
                           alt={`Образец ${i + 1}`}
-                          className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover/slide:scale-[2.5] group-hover/slide:translate-y-[-30%]"
+                          className="w-full h-full object-cover"
                         />
                       )}
                     </div>
