@@ -9,6 +9,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
 import JSZip from "jszip";
 import { toast } from "sonner";
+import lightEditorialSample1 from "@/assets/samples/light-editorial-1.jpeg";
+import lightEditorialSample2 from "@/assets/samples/light-editorial-2.jpeg";
+import lightEditorialSample3 from "@/assets/samples/light-editorial-3.jpeg";
+import lightEditorialSample4 from "@/assets/samples/light-editorial-4.jpeg";
+import lightEditorialSample5 from "@/assets/samples/light-editorial-5.jpeg";
+import lightEditorialSample6 from "@/assets/samples/light-editorial-6.jpeg";
+import lightEditorialSample7 from "@/assets/samples/light-editorial-7.jpeg";
 import expertSample1 from "@/assets/samples/expert-infographic-1.jpeg";
 import expertSample2 from "@/assets/samples/expert-infographic-2.jpeg";
 import expertSample3 from "@/assets/samples/expert-infographic-3.jpeg";
@@ -31,13 +38,14 @@ import illustratedSample5 from "@/assets/samples/illustrated-5.jpeg";
 import illustratedSample6 from "@/assets/samples/illustrated-6.jpeg";
 import illustratedSample7 from "@/assets/samples/illustrated-7.jpeg";
 
+const lightEditorialSamples = [lightEditorialSample1, lightEditorialSample2, lightEditorialSample3, lightEditorialSample4, lightEditorialSample5, lightEditorialSample6, lightEditorialSample7];
 const expertSamples = [expertSample1, expertSample2, expertSample3, expertSample4, expertSample5, expertSample6, expertSample7];
 const darkSamples = [darkSample1, darkSample2, darkSample3, darkSample4, darkSample5, darkSample6, darkSample7];
 const illustratedSamples = [illustratedSample1, illustratedSample2, illustratedSample3, illustratedSample4, illustratedSample5, illustratedSample6, illustratedSample7];
 
 const carouselStyles = [
   { id: "classic-warm", name: "Классический тёплый", samples: [] as string[] },
-  { id: "light-editorial", name: "Светлый Editorial", samples: [] as string[] },
+  { id: "light-editorial", name: "Светлый Editorial", samples: lightEditorialSamples },
   { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples },
   { id: "dark", name: "Тёмный", samples: darkSamples },
   { id: "illustrated", name: "Иллюстрированный персонаж", samples: illustratedSamples },
