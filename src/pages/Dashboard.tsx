@@ -9,6 +9,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
 import JSZip from "jszip";
 import { toast } from "sonner";
+import expertSample1 from "@/assets/samples/expert-infographic-1.jpeg";
+import expertSample2 from "@/assets/samples/expert-infographic-2.jpeg";
+import expertSample3 from "@/assets/samples/expert-infographic-3.jpeg";
+import expertSample4 from "@/assets/samples/expert-infographic-4.jpeg";
+import expertSample5 from "@/assets/samples/expert-infographic-5.jpeg";
+import expertSample6 from "@/assets/samples/expert-infographic-6.jpeg";
+import expertSample7 from "@/assets/samples/expert-infographic-7.jpeg";
 
 const carouselStyles = [
   { id: "classic-warm", name: "Классический тёплый" },
