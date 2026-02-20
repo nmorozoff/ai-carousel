@@ -67,6 +67,7 @@ const carouselStyles = [
   { id: "dark", name: "Тёмный", samples: darkSamples, subtitle: null, noPhoto: false },
   { id: "illustrated", name: "Персонаж", samples: illustratedSamples, subtitle: "Загрузи своё фото — на его основе создаётся твой 3D персонаж", noPhoto: false },
   { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples, subtitle: "Фото не требуется — стиль на основе схем и данных", noPhoto: true },
+  { id: "storytelling", name: "Сторителлинг", samples: [] as string[], subtitle: "Фото не требуется — каждый слайд иллюстрирует сцену из истории", noPhoto: true },
 ];
 
 const styleIdToName: Record<string, string> = {
@@ -76,6 +77,7 @@ const styleIdToName: Record<string, string> = {
   "dark": "Тёмный",
   "illustrated": "Персонаж",
   "infographic": "Схемы & Инфографика",
+  "storytelling": "Сторителлинг",
 };
 
 interface SlideResult {

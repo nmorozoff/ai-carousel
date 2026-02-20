@@ -186,13 +186,31 @@ coral / red-orange / salmon family.
 Typography: Bold modern Montserrat-style sans-serif.
 Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
 Atmosphere: Educational, authoritative, consulting quality.`,
+
+      'Сторителлинг': `
+Generate ONE hyperrealistic photographic image (4:5 ratio, 1080x1350px).
+Style: Cinematic photography, Sony A7R, 35mm f/2.0.
+Real people, real locations. NOT illustration, NOT cartoon.
+For each slide — illustrate the EXACT SCENE described in the slide content.
+Characters must stay CONSISTENT across all slides (same faces, clothes, hair throughout the carousel).
+TEXT PLACEMENT:
+- Bottom: semi-transparent dark bar, height 180-200px
+- Line 1: headline — white bold 36px
+- Lines 2-3: body text — white italic 26px
+- Bar background: warm dark tint rgba(0,0,0,0.44)
+SLIDE 1 ONLY: Large coral text right side: ЛИСТАЙ → (60px bold)
+Slides 2-7: slide number X/7 top-right, white 28px.
+Lighting: cinematic, warm, emotional.
+Each scene: dramatically expressive characters, emotions readable at first glance.
+Depth of field — foreground sharp, background bokeh.
+IMPORTANT: This style only works well for story-type carousels with characters and scenes.`,
     };
     return styles[s] || styles['Профессиональный'];
   }
 
   const styleDesc = getStyleGuide(style);
   const hasPhotos = userPhotos && userPhotos.length > 0;
-  const noPersonStyles = ['Схемы & Инфографика', 'Персонаж'];
+  const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
 
   const prompt = `Instagram carousel slide ${slideNumber} of 7.
