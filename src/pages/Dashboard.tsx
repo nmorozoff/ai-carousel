@@ -380,7 +380,7 @@ const Dashboard = () => {
             >
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
               <div className="text-center">
-                <p className="font-heading font-semibold text-lg">Генерируем ваши слайды...</p>
+                <p className="font-heading font-semibold text-lg">Генерируем и очищаем слайды...</p>
                 <p className="text-sm text-muted-foreground mt-1">Это займёт 1-2 минуты ☕</p>
               </div>
             </motion.div>
