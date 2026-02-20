@@ -65,7 +65,7 @@ const carouselStyles = [
   { id: "light-editorial", name: "Светлый", samples: lightEditorialSamples, subtitle: null, noPhoto: false },
   { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples, subtitle: null, noPhoto: false },
   { id: "dark", name: "Тёмный", samples: darkSamples, subtitle: null, noPhoto: false },
-  { id: "illustrated", name: "Персонаж", samples: illustratedSamples, subtitle: "Фото не требуется — создаётся 3D персонаж автоматически", noPhoto: true },
+  { id: "illustrated", name: "Персонаж", samples: illustratedSamples, subtitle: "Загрузи своё фото — на его основе создаётся твой 3D персонаж", noPhoto: false },
   { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples, subtitle: "Фото не требуется — стиль на основе схем и данных", noPhoto: true },
 ];
 
