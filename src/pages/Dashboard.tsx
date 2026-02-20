@@ -52,20 +52,20 @@ const darkSamples = [darkSample1, darkSample2, darkSample3, darkSample4, darkSam
 const illustratedSamples = [illustratedSample1, illustratedSample2, illustratedSample3, illustratedSample4, illustratedSample5, illustratedSample6, illustratedSample7];
 
 const carouselStyles = [
-  { id: "classic-warm", name: "Классический тёплый", samples: [] as string[] },
-  { id: "light-editorial", name: "Светлый Editorial", samples: lightEditorialSamples },
-  { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples },
-  { id: "dark", name: "Тёмный", samples: darkSamples },
-  { id: "illustrated", name: "Иллюстрированный персонаж", samples: illustratedSamples },
-  { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples },
+  { id: "professional", name: "Профессиональный", samples: [] as string[], subtitle: null, noPhoto: false },
+  { id: "light-editorial", name: "Светлый", samples: lightEditorialSamples, subtitle: null, noPhoto: false },
+  { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples, subtitle: null, noPhoto: false },
+  { id: "dark", name: "Тёмный", samples: darkSamples, subtitle: null, noPhoto: false },
+  { id: "illustrated", name: "Персонаж", samples: illustratedSamples, subtitle: "Фото не требуется — создаётся 3D персонаж автоматически", noPhoto: true },
+  { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples, subtitle: "Фото не требуется — стиль на основе схем и данных", noPhoto: true },
 ];
 
 const styleIdToName: Record<string, string> = {
-  "classic-warm": "Классический тёплый",
-  "light-editorial": "Светлый Editorial",
+  "professional": "Профессиональный",
+  "light-editorial": "Светлый",
   "expert-infographic": "Инфографика с экспертом",
   "dark": "Тёмный",
-  "illustrated": "Иллюстрированный персонаж",
+  "illustrated": "Персонаж",
   "infographic": "Схемы & Инфографика",
 };
 
@@ -80,14 +80,18 @@ interface SlideResult {
 const Dashboard = () => {
   const [text, setText] = useState("");
   const [cta, setCta] = useState("");
-  const [selectedStyle, setSelectedStyle] = useState("classic-warm");
+  const [selectedStyle, setSelectedStyle] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<SlideResult[] | null>(null);
   const [caption, setCaption] = useState<string | null>(null);
   const [captionCopied, setCaptionCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"slides" | "caption">("slides");
   const [userPhotos, setUserPhotos] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
+
+  const selectedStyleData = carouselStyles.find(s => s.id === selectedStyle);
+  const showPhotoBlock = !selectedStyleData?.noPhoto;
 
   useEffect(() => {
     const load = async () => {
@@ -126,7 +130,7 @@ const Dashboard = () => {
         body: {
           userText: text,
           funnel: cta,
-          style: styleIdToName[selectedStyle] || "Классический тёплый",
+          style: styleIdToName[selectedStyle] || "Профессиональный",
           userPhotos: photosRaw,
         },
       });
@@ -136,6 +140,7 @@ const Dashboard = () => {
 
       setResults(data.slides);
       setCaption(data.caption || null);
+      setActiveTab("slides");
       toast.success("Слайды успешно сгенерированы!");
 
       // Log generation event
@@ -263,16 +268,14 @@ const Dashboard = () => {
           />
         </motion.div>
 
-        {/* Фото-референс */}
+        {/* Фото-референс — только для стилей, где нужно фото */}
         <AnimatePresence>
-          {selectedStyle !== "infographic" && (
+          {showPhotoBlock && (
             <PhotoReference
               photos={userPhotos}
               onChange={setUserPhotos}
               subtitle={
-                selectedStyle === "illustrated"
-                  ? "Загрузите фото — ИИ создаст 3D-персонаж похожий на вас"
-                  : selectedStyle === "expert-infographic"
+                selectedStyle === "expert-infographic"
                   ? "Загрузите фото — эксперт появится в сцене с реквизитом"
                   : "Загрузите 1-3 фото себя — ИИ вставит вас в слайды"
               }
@@ -299,7 +302,7 @@ const Dashboard = () => {
                     : "border-border/50 hover:border-border"
                 }`}
               >
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     selectedStyle === style.id ? "border-primary" : "border-muted-foreground/40"
                   }`}>
@@ -309,8 +312,8 @@ const Dashboard = () => {
                   </div>
                   <span className="font-heading font-medium text-sm">{style.name}</span>
                 </div>
-                {style.id === "infographic" && (
-                  <p className="text-xs text-muted-foreground ml-7 -mt-1 mb-1">Фото не требуется — стиль на основе схем и данных</p>
+                {style.subtitle && (
+                  <p className="text-xs text-muted-foreground ml-7 mb-2">{style.subtitle}</p>
                 )}
                 <div className="flex gap-2 overflow-x-auto pb-2 ml-7" style={{ paddingTop: "8px" }}>
                   {Array.from({ length: 7 }, (_, i) => (
@@ -375,73 +378,102 @@ const Dashboard = () => {
 
         {/* Results */}
         <AnimatePresence>
-          {results && results.length > 0 && (
+          {(results && results.length > 0) || caption ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="glass rounded-2xl p-6"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-heading font-semibold text-lg">Результат: {results.length} слайдов</h2>
-                <Button variant="outline" size="sm" className="gap-2" onClick={downloadAllZip}>
-                  <FileArchive className="w-4 h-4" />
-                  Скачать ZIP
-                </Button>
+              {/* Tabs */}
+              <div className="flex gap-1 mb-6 bg-muted/50 rounded-xl p-1">
+                <button
+                  onClick={() => setActiveTab("slides")}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "slides"
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Слайды {results ? `(${results.length})` : ""}
+                </button>
+                <button
+                  onClick={() => setActiveTab("caption")}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "caption"
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  📝 Описание поста
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {results.map((slide) => (
-                  <div key={slide.slideNumber} className="relative group rounded-xl overflow-hidden border border-border/30">
-                    <img
-                      src={`data:${slide.mimeType};base64,${slide.imageBase64}`}
-                      alt={`Слайд ${slide.slideNumber}`}
-                      className="w-full aspect-[4/5] object-cover"
-                    />
-                    <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button size="sm" variant="secondary" className="gap-2" onClick={() => downloadSlide(slide)}>
-                        <Download className="w-4 h-4" />
-                        Скачать
-                      </Button>
-                    </div>
-                    <div className="absolute top-2 left-2">
-                      <span className="text-xs font-heading font-bold bg-background/70 rounded-md px-2 py-1">
-                        {slide.slideNumber}/7
-                      </span>
-                    </div>
+              {/* Slides tab */}
+              {activeTab === "slides" && results && results.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-heading font-semibold text-base">Результат: {results.length} слайдов</h2>
+                    <Button variant="outline" size="sm" className="gap-2" onClick={downloadAllZip}>
+                      <FileArchive className="w-4 h-4" />
+                      Скачать ZIP
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  <div className="grid grid-cols-2 gap-4">
+                    {results.map((slide) => (
+                      <div key={slide.slideNumber} className="relative group rounded-xl overflow-hidden border border-border/30">
+                        <img
+                          src={`data:${slide.mimeType};base64,${slide.imageBase64}`}
+                          alt={`Слайд ${slide.slideNumber}`}
+                          className="w-full aspect-[4/5] object-cover"
+                        />
+                        <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button size="sm" variant="secondary" className="gap-2" onClick={() => downloadSlide(slide)}>
+                            <Download className="w-4 h-4" />
+                            Скачать
+                          </Button>
+                        </div>
+                        <div className="absolute top-2 left-2">
+                          <span className="text-xs font-heading font-bold bg-background/70 rounded-md px-2 py-1">
+                            {slide.slideNumber}/7
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-        {/* Описание к посту */}
-        <AnimatePresence>
-          {caption && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-2xl p-6 mt-6"
-            >
-              <h2 className="font-heading font-semibold text-lg mb-4">📝 Описание к посту</h2>
-              <div className="bg-background border border-border rounded-xl p-4 mb-4 whitespace-pre-line text-sm leading-relaxed">
-                {caption}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button variant="outline" className="gap-2 flex-1" onClick={copyCaption}>
-                  {captionCopied ? (
-                    <><Check className="w-4 h-4" />Скопировано!</>
+              {/* Caption tab */}
+              {activeTab === "caption" && (
+                <div>
+                  {caption ? (
+                    <>
+                      <div className="bg-background border border-border rounded-xl p-4 mb-4 whitespace-pre-line text-sm leading-relaxed min-h-[160px]">
+                        {caption}
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button variant="outline" className="gap-2 flex-1" onClick={copyCaption}>
+                          {captionCopied ? (
+                            <><Check className="w-4 h-4" />Скопировано!</>
+                          ) : (
+                            <><Copy className="w-4 h-4" />Скопировать текст</>
+                          )}
+                        </Button>
+                        <Button variant="outline" className="gap-2 flex-1" onClick={downloadCaption}>
+                          <FileText className="w-4 h-4" />
+                          Скачать .txt
+                        </Button>
+                      </div>
+                    </>
                   ) : (
-                    <><Copy className="w-4 h-4" />Скопировать текст</>
+                    <div className="text-center py-12 text-muted-foreground text-sm">
+                      Описание появится после генерации слайдов
+                    </div>
                   )}
-                </Button>
-                <Button variant="outline" className="gap-2 flex-1" onClick={downloadCaption}>
-                  <FileText className="w-4 h-4" />
-                  Скачать .txt
-                </Button>
-              </div>
+                </div>
+              )}
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
     </div>

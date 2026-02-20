@@ -91,7 +91,7 @@ async function generateSlideImage(
 
   function getStyleGuide(s: string): string {
     const styles: Record<string, string> = {
-      'Классический тёплый': `
+      'Профессиональный': `
 VISUAL STYLE: Warm Classic Premium.
 Background: Soft warm cream (#FAF7F2) with subtle warm gradient.
 Colors: Deep burgundy (#8B1A1A) for headlines, warm gold (#C9A84C) accents, dark brown body text.
@@ -100,22 +100,32 @@ Lighting: Soft natural warm golden light. Studio quality.
 Decorative: Thin gold geometric lines in corners.
 Atmosphere: Warm, trustworthy, professional wellness brand.
 Person placement: Lower center, integrated into warm scene.`,
-      'Светлый Editorial': `
+
+      'Светлый': `
 VISUAL STYLE: Light Premium Editorial — magazine cover style.
-Background: Warm white (#FAFAF8) top, soft peach-beige gradient (#F5EDE4) at bottom.
-ONE thin coral (#D4614A) line along RIGHT edge only. NO random geometric shapes floating.
-Colors: Dark navy (#1A2B4A) main headlines, coral (#D4614A) accent word or line, gray body text.
+COLOR VARIATION RULE:
+Each slide — choose ONE background tone from warm light family:
+peach / cream / blush / ivory / warm white.
+Each slide different tone within this family.
+Accent: one tone from warm medium family:
+coral / salmon / terracotta / dusty rose.
+Vary slightly slide to slide.
+ONE thin coral line along RIGHT edge only. NO random geometric shapes floating.
+Colors: Dark navy (#1A2B4A) main headlines, coral accent word or line, gray body text.
 Typography: Very large bold condensed sans-serif headlines stacked in 3-4 lines left-aligned.
 Massive size contrast between headline and body text.
 Person placement: RIGHT half of image, large, bottom-aligned, slightly cut at knees. Takes up 55% of width.
 Text placement: LEFT 45% of image, stacked vertically, lots of breathing room between elements.
 Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic. Clean, intentional.
 Person and text overlap slightly at shoulder zone.`,
+
       'Инфографика с экспертом': `
 VISUAL STYLE: Expert Infographic — educational and engaging.
-Background: Clean white (#FFFFFF) or very light gray (#F8F8F8).
-Accent colors: Bright blue (#2196F3) or green (#4CAF50) for positive elements, red (#F44336) for negative/warning.
-Typography: Bold modern sans-serif headlines at top. Smaller readable body text at bottom.
+COLOR VARIATION RULE:
+Background: clean light tone, vary per slide:
+white / light blue / light mint / warm white.
+Accent: bright tone from blue/green/coral family,
+vary per slide to keep energy fresh.
 PERSON: Place expert in CENTER or LEFT of image.
 Expert physically holds or interacts with REAL PROPS relevant to the slide topic — food, objects, documents, tools.
 Props appear naturally in expert's hands or on table in front.
@@ -123,6 +133,7 @@ INFOGRAPHIC ELEMENTS: Place diagrams, charts, comparison tables, icons, arrows, 
 Elements show data visually — before/after, pros/cons, step-by-step, comparison columns.
 Scene: Expert in relevant environment — kitchen, office, classroom, outdoors — matching the content topic.
 Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.`,
+
       'Тёмный': `
 VISUAL STYLE: Cinematic Warm Dark — premium psychology brand.
 NO white backgrounds. NO infographics. NO diagrams.
@@ -148,34 +159,48 @@ Gold serif for headline. White for body text.
 ATMOSPHERE: Cinematic, emotional, premium therapy brand.
 Like a luxury film still. Intimate, wise, safe presence.
 NO clinical coldness. NO flat design elements.`,
-      'Иллюстрированный персонаж': `
-VISUAL STYLE: 3D Illustrated Character.
-If person photo provided — create stylized 3D cartoon avatar resembling them. Professional outfit, warm expressive face.
-Background: Clean white or soft pastel gradient.
-Colors: Soft pastels with coral, mint, lavender accents.
+
+      'Персонаж': `
+VISUAL STYLE: 3D Illustrated Character — NO real person photo needed.
+Create a stylized friendly 3D cartoon avatar. Professional outfit, warm expressive face.
+COLOR VARIATION RULE:
+Each slide background — soft pastel gradient,
+vary the tone each slide:
+alternate between: sky blue, mint, peach,
+lavender, warm cream — each fading → white.
+Accent elements complement the background tone.
 Typography: Rounded friendly bold sans-serif.
-3D elements: Floating speech bubbles, lightbulbs, hearts, stars.
-Atmosphere: Approachable, modern, premium app illustration.`,
+3D elements: Floating speech bubbles, lightbulbs, hearts, stars — placed at chest/hand level, NEVER near face.
+Atmosphere: Approachable, modern, premium app illustration.
+CRITICAL: No real photo needed — generate a stylized 3D avatar character automatically.`,
+
       'Схемы & Инфографика': `
 VISUAL STYLE: Clean Data Infographic. NO person needed.
-Background: Pure white (#FFFFFF).
-Colors: Coral (#FF6B6B) and dark navy (#1A2B4A).
+COLOR VARIATION RULE:
+Background: clean light tone, vary per slide:
+white / off-white / light gray / pale blue.
+Accent: professional tone from:
+navy / teal / slate / deep blue family.
+Warning elements: warm tone from:
+coral / red-orange / salmon family.
 Typography: Bold modern Montserrat-style sans-serif.
 Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
 Atmosphere: Educational, authoritative, consulting quality.`,
     };
-    return styles[s] || styles['Классический тёплый'];
+    return styles[s] || styles['Профессиональный'];
   }
 
   const styleDesc = getStyleGuide(style);
   const hasPhotos = userPhotos && userPhotos.length > 0;
+  const noPersonStyles = ['Схемы & Инфографика', 'Персонаж'];
+  const needsPhoto = !noPersonStyles.includes(style);
 
   const prompt = `Instagram carousel slide ${slideNumber} of 7.
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
 ${isLastSlide ? "This is the CTA slide — make it action-oriented with clear call to action." : ""}
 Title text on slide: "${title}"
 ${content ? `Body text: "${content}"` : ""}
-${hasPhotos && style !== "Схемы & Инфографика" ? "Include a person in the slide that matches the uploaded reference photo." : ""}
+${hasPhotos && needsPhoto ? "Include a person in the slide that matches the uploaded reference photo." : ""}
 Square format 1080x1080, professional social media post, high quality, text clearly readable, modern design.
 Do NOT add any borders or watermarks.
 
@@ -192,7 +217,7 @@ CRITICAL RULE FOR 3D ELEMENTS:
   const parts: any[] = [];
 
   // Add reference photos if available and style supports them
-  if (hasPhotos && style !== "Схемы & Инфографика" && userPhotos.length > 0) {
+  if (hasPhotos && needsPhoto && userPhotos.length > 0) {
     // Use first photo as reference
     parts.push({
       inlineData: {
@@ -307,7 +332,7 @@ serve(async (req) => {
     const { slides: slideContents, caption } = await generateSlideContent(
       userText,
       funnel || "",
-      style || "Классический тёплый"
+      style || "Профессиональный"
     );
 
     console.log(`Generated ${slideContents.length} slide texts`);
@@ -322,7 +347,7 @@ serve(async (req) => {
           i + 1,
           slide.title,
           slide.content,
-          style || "Классический тёплый",
+          style || "Профессиональный",
           userPhotos || []
         );
 
@@ -359,7 +384,7 @@ serve(async (req) => {
       );
       await supabaseAdmin.from("generation_logs").insert({
         user_id: userId,
-        style: style || "Классический тёплый",
+        style: style || "Профессиональный",
         funnel: funnel || null,
         user_text: userText,
         slide_count: slideResults.length,
