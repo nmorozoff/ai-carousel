@@ -8,6 +8,99 @@ const corsHeaders = {
 };
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const AI_CLEANER_API_KEY = Deno.env.get("AI_CLEANER_API_KEY");
+
+// Generate SEO metadata using Gemini text model
+async function generateSeoMeta(userText: string): Promise<{ title: string; keywords: string }> {
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [{
+              text: `На основе текста ниже верни JSON без markdown:
+{"title": "тема карусели в 5-7 слов", "keywords": "до 8 ключевых слов через запятую, релевантных теме, нише психолога, Instagram"}
+Только JSON, без пояснений.
+ТЕКСТ: ${userText}`,
+            }],
+          }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
+        }),
+      }
+    );
+    if (!response.ok) return { title: "", keywords: "Instagram карусель" };
+    const data = await response.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return { title: "", keywords: "Instagram карусель" };
+  }
+}
+
+// Clean slide image via AI Cleaner API (multipart, base64 → binary)
+async function cleanSlideImage(
+  imageBase64: string,
+  mimeType: string,
+  title: string,
+  keywords: string
+): Promise<{ imageBase64: string; mimeType: string }> {
+  if (!AI_CLEANER_API_KEY) return { imageBase64, mimeType };
+  try {
+    // Convert base64 to Uint8Array binary
+    const binaryStr = atob(imageBase64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+
+    const ext = mimeType === "image/jpeg" ? "jpeg" : "png";
+    const formData = new FormData();
+    formData.append("image", new Blob([bytes], { type: mimeType }), `slide.${ext}`);
+    formData.append("title", title || "Instagram carousel");
+    formData.append("author", "");
+    formData.append("software", "Adobe Photoshop 25.0");
+    formData.append("keywords", keywords || "Instagram карусель");
+
+    const res = await fetch("https://mcp-kv.ru/ai-delete/api/clean", {
+      method: "POST",
+      headers: { "X-API-Key": AI_CLEANER_API_KEY },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      console.warn(`AI Cleaner returned ${res.status}, using original`);
+      return { imageBase64, mimeType };
+    }
+
+    const cleaned = await res.json();
+    // If API returns download_url — fetch and re-encode to base64
+    if (cleaned.download_url) {
+      const fileRes = await fetch(cleaned.download_url);
+      if (!fileRes.ok) return { imageBase64, mimeType };
+      const buffer = await fileRes.arrayBuffer();
+      const cleanedBytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < cleanedBytes.length; i++) {
+        binary += String.fromCharCode(cleanedBytes[i]);
+      }
+      return { imageBase64: btoa(binary), mimeType };
+    }
+    // If API returns base64 directly
+    if (cleaned.image_base64) {
+      return { imageBase64: cleaned.image_base64, mimeType: cleaned.mime_type || mimeType };
+    }
+
+    return { imageBase64, mimeType };
+  } catch (e) {
+    console.warn("AI Cleaner error, using original:", e);
+    return { imageBase64, mimeType };
+  }
+}
 
 // Generate slide content (text) using Gemini text model
 async function generateSlideContent(
@@ -346,16 +439,15 @@ serve(async (req) => {
     console.log(`Generating slides for style: ${style}`);
     const startTime = Date.now();
 
-    // Step 1: Generate slide content (text)
-    const { slides: slideContents, caption } = await generateSlideContent(
-      userText,
-      funnel || "",
-      style || "Профессиональный"
-    );
+    // Step 1: Generate slide content (text) + SEO meta in parallel
+    const [{ slides: slideContents, caption }, seoMeta] = await Promise.all([
+      generateSlideContent(userText, funnel || "", style || "Профессиональный"),
+      generateSeoMeta(userText),
+    ]);
 
-    console.log(`Generated ${slideContents.length} slide texts`);
+    console.log(`Generated ${slideContents.length} slide texts, SEO: ${seoMeta.title}`);
 
-    // Step 2: Generate images sequentially (to avoid rate limits)
+    // Step 2: Generate images sequentially (to avoid rate limits) + clean each
     const slideResults = [];
 
     for (let i = 0; i < slideContents.length; i++) {
@@ -369,15 +461,23 @@ serve(async (req) => {
           userPhotos || []
         );
 
+        // Clean AI metadata via AI Cleaner (fallback to original on error)
+        const cleaned = await cleanSlideImage(
+          imageData.imageBase64,
+          imageData.mimeType,
+          seoMeta.title,
+          seoMeta.keywords
+        );
+
         slideResults.push({
           slideNumber: i + 1,
           title: slide.title,
           content: slide.content,
-          imageBase64: imageData.imageBase64,
-          mimeType: imageData.mimeType,
+          imageBase64: cleaned.imageBase64,
+          mimeType: cleaned.mimeType,
         });
 
-        console.log(`Slide ${i + 1} generated`);
+        console.log(`Slide ${i + 1} generated and cleaned`);
       } catch (err) {
         console.error(`Error generating slide ${i + 1}:`, err);
         slideResults.push({
