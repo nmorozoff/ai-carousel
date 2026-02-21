@@ -230,7 +230,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4">
+    <div className="min-h-screen py-4 sm:py-8 px-3 sm:px-4">
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -334,11 +334,11 @@ const Dashboard = () => {
                 {style.subtitle && (
                   <p className="text-xs text-muted-foreground ml-7 mb-2">{style.subtitle}</p>
                 )}
-                <div className="flex gap-2 overflow-x-auto pb-2 ml-7" style={{ paddingTop: "8px" }}>
+                <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 ml-7" style={{ paddingTop: "8px" }}>
                   {Array.from({ length: 7 }, (_, i) => (
                     <div
                       key={i}
-                      className="w-16 h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden"
+                      className="w-12 h-15 sm:w-16 sm:h-20 rounded-lg border border-border/60 bg-secondary/40 shrink-0 overflow-hidden"
                     >
                       {style.samples[i] && (
                         <img
@@ -437,7 +437,7 @@ const Dashboard = () => {
                       Скачать ZIP
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {results.map((slide) => (
                       <div key={slide.slideNumber} className="relative group rounded-xl overflow-hidden border border-border/30">
                         <img

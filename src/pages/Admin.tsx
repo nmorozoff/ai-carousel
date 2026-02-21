@@ -201,9 +201,9 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4">
+    <div className="min-h-screen py-4 sm:py-8 px-3 sm:px-4">
       <div className="container mx-auto max-w-6xl">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Дашборд</span>
@@ -235,7 +235,7 @@ const Admin = () => {
           <TabsContent value="overview">
             {overview ? (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                   {[
                     { label: "Пользователей", value: overview.totalUsers, icon: Users, color: "text-primary" },
                     { label: "Активных подписок", value: overview.activeSubscriptions, icon: CreditCard, color: "text-accent" },
@@ -304,8 +304,8 @@ const Admin = () => {
                 />
               </div>
 
-              <Card className="glass overflow-hidden">
-                <Table>
+              <Card className="glass overflow-x-auto">
+                <Table className="min-w-[500px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Пользователь</TableHead>
