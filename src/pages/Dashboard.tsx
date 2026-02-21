@@ -100,10 +100,7 @@ interface SlideResult {
 
 const Dashboard = () => {
   const [text, setText] = useState("");
-  const [funnelType, setFunnelType] = useState("");
-  const [funnelKeyword, setFunnelKeyword] = useState("");
-  const [funnelBenefit, setFunnelBenefit] = useState("");
-  const [funnelHighlight, setFunnelHighlight] = useState("");
+  const [cta, setCta] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<SlideResult[] | null>(null);
@@ -138,25 +135,8 @@ const Dashboard = () => {
     load();
   }, []);
 
-  const buildFunnelText = (): string => {
-    switch (funnelType) {
-      case "keyword":
-        return `Напиши в комментарии кодовое слово ${funnelKeyword || "СЛОВО"} и я пришлю тебе ${funnelBenefit || "полезный материал"}`;
-      case "highlight":
-        return `Все подробности в актуальном ${funnelHighlight || "хайлайте"} — ссылка в шапке профиля`;
-      case "subscribe":
-        return "Подпишись чтобы не пропустить следующий пост";
-      case "save":
-        return "Сохрани чтобы не потерять";
-      case "question":
-        return "Задай один цепляющий вопрос к аудитории по теме поста";
-      default:
-        return "";
-    }
-  };
-
   const handleGenerate = async () => {
-    if (!text.trim() || !funnelType) return;
+    if (!text.trim()) return;
     setIsGenerating(true);
     setResults(null);
     setCaption(null);
@@ -167,12 +147,10 @@ const Dashboard = () => {
         return match ? match[1] : p;
       });
 
-      const funnelText = buildFunnelText();
-
       const { data, error } = await supabase.functions.invoke("generate-slides", {
         body: {
           userText: text,
-          funnel: funnelText,
+          funnel: cta,
           style: styleIdToName[selectedStyle] || "Профессиональный",
           userPhotos: photosRaw,
         },
@@ -295,54 +273,20 @@ const Dashboard = () => {
           />
         </motion.div>
 
-        {/* Призыв в описании поста */}
+        {/* Воронка в карусели */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
           className="glass rounded-2xl p-6 mb-4"
         >
-          <h2 className="font-heading font-semibold text-lg mb-3">Призыв в описании поста</h2>
-          <Select value={funnelType} onValueChange={(v) => setFunnelType(v)}>
-            <SelectTrigger className="bg-background border-2 border-border rounded-xl">
-              <SelectValue placeholder="Выберите тип призыва" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="keyword">Кодовое слово</SelectItem>
-              <SelectItem value="highlight">Перейти в хайлайт</SelectItem>
-              <SelectItem value="subscribe">Подписаться</SelectItem>
-              <SelectItem value="save">Сохранить</SelectItem>
-              <SelectItem value="question">Вопрос аудитории</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {funnelType === "keyword" && (
-            <div className="mt-3 space-y-3">
-              <Input
-                value={funnelKeyword}
-                onChange={(e) => setFunnelKeyword(e.target.value)}
-                placeholder="Кодовое слово (например: РАЗБОР)"
-                className="bg-background border-2 border-border rounded-xl"
-              />
-              <Input
-                value={funnelBenefit}
-                onChange={(e) => setFunnelBenefit(e.target.value)}
-                placeholder="Что получит человек (например: личный план)"
-                className="bg-background border-2 border-border rounded-xl"
-              />
-            </div>
-          )}
-
-          {funnelType === "highlight" && (
-            <div className="mt-3">
-              <Input
-                value={funnelHighlight}
-                onChange={(e) => setFunnelHighlight(e.target.value)}
-                placeholder="Название хайлайта"
-                className="bg-background border-2 border-border rounded-xl"
-              />
-            </div>
-          )}
+          <h2 className="font-heading font-semibold text-lg mb-3">Воронка в карусели</h2>
+          <Textarea
+            value={cta}
+            onChange={(e) => setCta(e.target.value)}
+            placeholder={'Введите призыв к действию для последнего слайда.\n\nПримеры:\n• Кодовое слово: "РАЗБОР" → ИИ напишет:\n  "Напиши РАЗБОР в комментарии — пришлю личный план"\n• Директ: "Напиши мне ХОЧУ в Директ"\n• Подписка: "Подпишись чтобы не потерять"\n\nЕсли оставить поле пустым — ИИ подберёт призыв автоматически по теме карусели'}
+            className="min-h-[100px] bg-background border-2 border-border rounded-xl resize-none text-sm placeholder:text-muted-foreground/70"
+          />
         </motion.div>
 
         {/* Фото-референс — только для стилей, где нужно фото */}
@@ -421,7 +365,7 @@ const Dashboard = () => {
         >
           <Button
             onClick={handleGenerate}
-            disabled={!text.trim() || !funnelType || isGenerating}
+            disabled={!text.trim() || isGenerating}
             className="w-full bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity h-12 text-base mb-6"
           >
             {isGenerating ? (
