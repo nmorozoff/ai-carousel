@@ -447,8 +447,8 @@ serve(async (req) => {
 
     console.log(`Generated ${slideContents.length} slide texts, SEO: ${seoMeta.title}`);
 
-    // Step 2: Generate images sequentially (to avoid rate limits) + clean each
-    const slideResults = [];
+    // Step 2: Generate images sequentially (to avoid Gemini rate limits)
+    const rawSlides: { index: number; title: string; content: string; imageBase64: string; mimeType: string; error?: string }[] = [];
 
     for (let i = 0; i < slideContents.length; i++) {
       const slide = slideContents[i];
@@ -460,36 +460,30 @@ serve(async (req) => {
           style || "Профессиональный",
           userPhotos || []
         );
-
-        // Clean AI metadata via AI Cleaner (fallback to original on error)
-        const cleaned = await cleanSlideImage(
-          imageData.imageBase64,
-          imageData.mimeType,
-          seoMeta.title,
-          seoMeta.keywords
-        );
-
-        slideResults.push({
-          slideNumber: i + 1,
-          title: slide.title,
-          content: slide.content,
-          imageBase64: cleaned.imageBase64,
-          mimeType: cleaned.mimeType,
-        });
-
-        console.log(`Slide ${i + 1} generated and cleaned`);
+        rawSlides.push({ index: i, title: slide.title, content: slide.content, ...imageData });
+        console.log(`Slide ${i + 1} generated`);
       } catch (err) {
         console.error(`Error generating slide ${i + 1}:`, err);
-        slideResults.push({
-          slideNumber: i + 1,
-          title: slide.title,
-          content: slide.content,
-          imageBase64: "",
-          mimeType: "image/png",
+        rawSlides.push({
+          index: i, title: slide.title, content: slide.content,
+          imageBase64: "", mimeType: "image/png",
           error: err instanceof Error ? err.message : "Image generation failed",
         });
       }
     }
+
+    // Step 3: Clean ALL slides in parallel via AI Cleaner
+    console.log("Cleaning all slides in parallel...");
+    const slideResults = await Promise.all(
+      rawSlides.map(async (slide) => {
+        if (slide.error || !slide.imageBase64) {
+          return { slideNumber: slide.index + 1, title: slide.title, content: slide.content, imageBase64: slide.imageBase64, mimeType: slide.mimeType, error: slide.error };
+        }
+        const cleaned = await cleanSlideImage(slide.imageBase64, slide.mimeType, seoMeta.title, seoMeta.keywords);
+        console.log(`Slide ${slide.index + 1} cleaned`);
+        return { slideNumber: slide.index + 1, title: slide.title, content: slide.content, imageBase64: cleaned.imageBase64, mimeType: cleaned.mimeType };
+      })
+    );
 
     const durationMs = Date.now() - startTime;
 
