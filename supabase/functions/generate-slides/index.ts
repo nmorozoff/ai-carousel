@@ -537,20 +537,37 @@ serve(async (req) => {
 
     // Step 3: Clean ALL slides in parallel via AI Cleaner
     console.log("Cleaning all slides in parallel...");
+    let cleanedCount = 0;
+    let cleanFailedCount = 0;
     const slideResults = await Promise.all(
       rawSlides.map(async (slide) => {
         if (slide.error || !slide.imageBase64) {
           return { slideNumber: slide.index + 1, title: slide.title, content: slide.content, imageBase64: slide.imageBase64, mimeType: slide.mimeType, error: slide.error };
         }
+        const original = slide.imageBase64;
         const cleaned = await cleanSlideImage(slide.imageBase64, slide.mimeType, seoMeta.title, seoMeta.keywords);
-        console.log(`Slide ${slide.index + 1} cleaned`);
+        if (cleaned.imageBase64 !== original) {
+          cleanedCount++;
+          console.log(`Slide ${slide.index + 1} cleaned successfully`);
+        } else {
+          cleanFailedCount++;
+          console.warn(`Slide ${slide.index + 1} NOT cleaned (returned original)`);
+        }
         return { slideNumber: slide.index + 1, title: slide.title, content: slide.content, imageBase64: cleaned.imageBase64, mimeType: cleaned.mimeType };
       })
     );
 
     const durationMs = Date.now() - startTime;
 
-    // Step 3: Save generation log (without base64 images to save space)
+    // Count errors
+    const imageErrors = slideResults.filter(s => s.error || !s.imageBase64).length;
+    const summaryError = imageErrors > 0
+      ? `${imageErrors}/${slideResults.length} slides failed image generation`
+      : null;
+
+    console.log(`Summary: ${slideResults.length} slides, ${imageErrors} image errors, ${cleanedCount} cleaned, ${cleanFailedCount} clean failed, ${durationMs}ms`);
+
+    // Save generation log (without base64 images to save space)
     const slidesForLog = slideResults.map(({ imageBase64: _, ...rest }) => rest);
     try {
       const supabaseAdmin = createClient(
@@ -566,6 +583,7 @@ serve(async (req) => {
         caption,
         duration_ms: durationMs,
         slides_json: slidesForLog,
+        error: summaryError,
       });
       console.log(`Generation log saved (${durationMs}ms)`);
     } catch (logErr) {
