@@ -189,7 +189,11 @@ ${captionPrompt}
     ...
   ],
   "caption": "..."
-}`;
+}
+
+Return ONLY valid complete JSON.
+No markdown, no backticks, no truncation.
+Ensure the JSON is fully closed with all brackets and braces.`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -224,46 +228,32 @@ ${captionPrompt}
   const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
   // Strip markdown code blocks if present
-  let cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const rawCleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
-  // Find JSON boundaries
-  const jsonStart = cleaned.search(/[\{\[]/);
-  const jsonEnd = cleaned.lastIndexOf('}');
-  if (jsonStart !== -1 && jsonEnd !== -1) {
-    cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-  }
-
-  // Fix common issues
-  cleaned = cleaned
-    .replace(/,\s*}/g, "}")
-    .replace(/,\s*]/g, "]")
-    .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\t' ? ch : "");
-
+  // Try direct parse first
   try {
-    return JSON.parse(cleaned);
-  } catch {
-    // Truncated JSON — try to salvage slides
-    console.warn("JSON parse failed, attempting to salvage truncated response...");
-    try {
-      // Close any open strings/objects to make it parseable
-      let salvaged = cleaned;
-      // If caption is missing, close the slides array and add empty caption
-      if (!salvaged.includes('"caption"')) {
-        // Find last complete slide object
-        const lastCompleteSlide = salvaged.lastIndexOf('}');
-        if (lastCompleteSlide > 0) {
-          salvaged = salvaged.substring(0, lastCompleteSlide + 1) + '], "caption": "" }';
-          // Ensure slides array is properly started
-          if (!salvaged.includes('"slides"')) {
-            throw new Error("Cannot salvage");
-          }
-          return JSON.parse(salvaged);
+    return JSON.parse(rawCleaned);
+  } catch (e) {
+    console.warn("Direct JSON parse failed, attempting extraction...");
+    // Try to find valid JSON object within the string
+    const match = rawCleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch (e2) {
+        // Try fixing common issues
+        const fixed = match[0]
+          .replace(/,\s*}/g, "}")
+          .replace(/,\s*]/g, "]")
+          .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\t' ? ch : "");
+        try {
+          return JSON.parse(fixed);
+        } catch (e3) {
+          throw new Error(`Failed to parse Gemini response: ${rawCleaned.substring(0, 200)}`);
         }
       }
-      throw new Error("Cannot salvage");
-    } catch {
-      throw new Error("Failed to parse Gemini response as JSON: " + cleaned.slice(0, 200));
     }
+    throw new Error(`Invalid JSON from Gemini: ${rawCleaned.substring(0, 200)}`);
   }
 }
 
