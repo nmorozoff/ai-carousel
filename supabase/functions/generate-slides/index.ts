@@ -280,6 +280,14 @@ async function generateSlideImage(
   function getStyleGuide(s: string): string {
     const styles: Record<string, string> = {
       'Профессиональный': `
+CRITICAL RULE — PERSON IN SLIDES:
+Use ONLY the photo uploaded by the user.
+Do NOT generate, replace or modify the person.
+Do NOT create a random or different woman.
+Preserve exactly: face, hair, skin, appearance.
+If no photo uploaded — leave person area empty,
+do not substitute with any generated person.
+
 VISUAL STYLE: Warm Classic Premium.
 Background: Soft warm cream (#FAF7F2) with subtle warm gradient.
 Colors: Deep burgundy (#8B1A1A) for headlines, warm gold (#C9A84C) accents, dark brown body text.
@@ -290,6 +298,14 @@ Atmosphere: Warm, trustworthy, professional wellness brand.
 Person placement: Lower center, integrated into warm scene.`,
 
       'Светлый': `
+CRITICAL RULE — PERSON IN SLIDES:
+Use ONLY the photo uploaded by the user.
+Do NOT generate, replace or modify the person.
+Do NOT create a random or different woman.
+Preserve exactly: face, hair, skin, appearance.
+If no photo uploaded — leave person area empty,
+do not substitute with any generated person.
+
 VISUAL STYLE: Light Premium Editorial — magazine cover style.
 COLOR VARIATION RULE:
 Each slide — choose ONE background tone from warm light family:
@@ -308,6 +324,14 @@ Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthe
 Person and text overlap slightly at shoulder zone.`,
 
       'Инфографика с экспертом': `
+CRITICAL RULE — PERSON IN SLIDES:
+Use ONLY the photo uploaded by the user.
+Do NOT generate, replace or modify the person.
+Do NOT create a random or different woman.
+Preserve exactly: face, hair, skin, appearance.
+If no photo uploaded — leave person area empty,
+do not substitute with any generated person.
+
 VISUAL STYLE: Expert Infographic — educational and engaging.
 COLOR VARIATION RULE:
 Background: pure white (#FFFFFF) only.
@@ -323,6 +347,14 @@ Scene: Expert in relevant environment — kitchen, office, classroom, outdoors �
 Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.`,
 
       'Тёмный': `
+CRITICAL RULE — PERSON IN SLIDES:
+Use ONLY the photo uploaded by the user.
+Do NOT generate, replace or modify the person.
+Do NOT create a random or different woman.
+Preserve exactly: face, hair, skin, appearance.
+If no photo uploaded — leave person area empty,
+do not substitute with any generated person.
+
 VISUAL STYLE: Cinematic Warm Dark — premium psychology brand.
 NO white backgrounds. NO infographics. NO diagrams.
 NO 3D floating objects. NO glowing chains or stars.
@@ -349,6 +381,16 @@ Like a luxury film still. Intimate, wise, safe presence.
 NO clinical coldness. NO flat design elements.`,
 
       'Персонаж': `
+CRITICAL RULE — CHARACTER CREATION:
+Use ONLY the photo uploaded by the user
+as the BASE for creating the 3D character.
+Preserve: face shape, hair color, skin tone,
+general appearance — transform to Pixar/Disney
+3D style but keep person recognizable.
+Do NOT create a random character.
+If no photo uploaded — do not generate anything,
+show error message to user.
+
 VISUAL STYLE: 3D Illustrated Character — NO real person photo needed.
 Create a stylized friendly 3D cartoon avatar. Professional outfit, warm expressive face.
 COLOR VARIATION RULE:
