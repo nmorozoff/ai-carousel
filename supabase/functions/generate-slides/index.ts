@@ -209,6 +209,10 @@ ${funnel || "Подбери сам по теме"}
 ТОНАЛЬНОСТЬ:
 Умный. Немного провокационный. Человечный.
 Как будто автор сам думал об этом и делится мыслью — а не публикует пост.
+Пиши от имени эксперта-женщины.
+Используй нейтральные формулировки:
+'Вот что я думаю', 'Заметила', 'Поняла' —
+не 'подумал', не 'заметил'.
 
 Объём: 800-1000 символов.
 Выдай только готовый текст. Без пояснений.`;
@@ -306,8 +310,8 @@ Person and text overlap slightly at shoulder zone.`,
       'Инфографика с экспертом': `
 VISUAL STYLE: Expert Infographic — educational and engaging.
 COLOR VARIATION RULE:
-Background: clean light tone, vary per slide:
-white / light blue / light mint / warm white.
+Background: pure white (#FFFFFF) only.
+No mint, no green, no teal tones ever.
 Accent: bright tone from blue/green/coral family,
 vary per slide to keep energy fresh.
 PERSON: Place expert in CENTER or LEFT of image.
