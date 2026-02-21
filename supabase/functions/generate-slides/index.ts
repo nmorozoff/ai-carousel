@@ -287,16 +287,17 @@ Real people, real locations. NOT illustration, NOT cartoon.
 For each slide — illustrate the EXACT SCENE described in the slide content.
 Characters must stay CONSISTENT across all slides (same faces, clothes, hair throughout the carousel).
 TEXT PLACEMENT:
-- Bottom: semi-transparent dark bar, height 180-200px
-- Line 1: headline — white bold 36px
-- Lines 2-3: body text — white italic 26px
-- Bar background: warm dark tint rgba(0,0,0,0.44)
-SLIDE 1 ONLY: Large coral text right side: ЛИСТАЙ → (60px bold)
-Slides 2-7: slide number X/7 top-right, white 28px.
-Lighting: cinematic, warm, emotional.
-Each scene: dramatically expressive characters, emotions readable at first glance.
-Depth of field — foreground sharp, background bokeh.
-IMPORTANT: This style only works well for story-type carousels with characters and scenes.`,
+- Bottom: Floating semi-transparent rounded rectangular glassmorphism plate (blur background).
+- Plate background: rgba(0,0,0,0.4).
+- Position: Bottom center, slightly above the bottom edge.
+- Width: ~90% of frame width.
+- Line 1: headline — white bold 32px, always in quotes like «Headline».
+- Lines 2-3: body text — white italic 24px, positioned below headline.
+SLIDE 1 ONLY: Large coral/peach colored text on the right side: ЛИСТАЙ → (bold, 50px).
+Slides 1-7: Small dark-grey rounded pill in top-right corner containing white text: X/7 (e.g. 1/7, 2/7).
+Lighting: warm cinematic sunset lighting (golden hour).
+Each scene: dramatically expressive characters, emotions readable.
+Depth of field — foreground sharp, background soft bokeh.`,
     };
     return styles[s] || styles['Профессиональный'];
   }
