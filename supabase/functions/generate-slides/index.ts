@@ -73,28 +73,46 @@ async function cleanSlideImage(
     });
 
     if (!res.ok) {
-      console.warn(`AI Cleaner returned ${res.status}, using original`);
+      const errBody = await res.text().catch(() => "");
+      console.warn(`AI Cleaner returned ${res.status}: ${errBody}, using original`);
       return { imageBase64, mimeType };
     }
 
-    const cleaned = await res.json();
+    const rawBody = await res.text();
+    console.log(`AI Cleaner response preview: ${rawBody.slice(0, 300)}`);
+    
+    let cleaned: any;
+    try {
+      cleaned = JSON.parse(rawBody);
+    } catch {
+      console.warn("AI Cleaner returned non-JSON response, using original");
+      return { imageBase64, mimeType };
+    }
+
     // If API returns download_url — fetch and re-encode to base64
     if (cleaned.download_url) {
+      console.log(`AI Cleaner: fetching cleaned file from ${cleaned.download_url}`);
       const fileRes = await fetch(cleaned.download_url);
-      if (!fileRes.ok) return { imageBase64, mimeType };
+      if (!fileRes.ok) {
+        console.warn(`AI Cleaner download failed: ${fileRes.status}`);
+        return { imageBase64, mimeType };
+      }
       const buffer = await fileRes.arrayBuffer();
       const cleanedBytes = new Uint8Array(buffer);
       let binary = "";
       for (let i = 0; i < cleanedBytes.length; i++) {
         binary += String.fromCharCode(cleanedBytes[i]);
       }
+      console.log(`AI Cleaner: slide cleaned successfully via download_url`);
       return { imageBase64: btoa(binary), mimeType };
     }
     // If API returns base64 directly
     if (cleaned.image_base64) {
+      console.log(`AI Cleaner: slide cleaned successfully via base64`);
       return { imageBase64: cleaned.image_base64, mimeType: cleaned.mime_type || mimeType };
     }
 
+    console.warn("AI Cleaner: response has no download_url or image_base64, using original");
     return { imageBase64, mimeType };
   } catch (e) {
     console.warn("AI Cleaner error, using original:", e);
