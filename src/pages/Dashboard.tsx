@@ -51,12 +51,20 @@ import illustratedSample4 from "@/assets/samples/illustrated-4.jpeg";
 import illustratedSample5 from "@/assets/samples/illustrated-5.jpeg";
 import illustratedSample6 from "@/assets/samples/illustrated-6.jpeg";
 import illustratedSample7 from "@/assets/samples/illustrated-7.jpeg";
+import storytellingSample1 from "@/assets/samples/storytelling-1.jpeg";
+import storytellingSample2 from "@/assets/samples/storytelling-2.jpeg";
+import storytellingSample3 from "@/assets/samples/storytelling-3.jpeg";
+import storytellingSample4 from "@/assets/samples/storytelling-4.jpeg";
+import storytellingSample5 from "@/assets/samples/storytelling-5.jpeg";
+import storytellingSample6 from "@/assets/samples/storytelling-6.jpeg";
+import storytellingSample7 from "@/assets/samples/storytelling-7.jpeg";
 
 const lightEditorialSamples = [lightEditorialSample1, lightEditorialSample2, lightEditorialSample3, lightEditorialSample4, lightEditorialSample5, lightEditorialSample6, lightEditorialSample7];
 const infographicSamples = [infographicSample1, infographicSample2, infographicSample3, infographicSample4, infographicSample5, infographicSample6, infographicSample7];
 const expertSamples = [expertSample1, expertSample2, expertSample3, expertSample4, expertSample5, expertSample6, expertSample7];
 const darkSamples = [darkSample1, darkSample2, darkSample3, darkSample4, darkSample5, darkSample6, darkSample7];
 const illustratedSamples = [illustratedSample1, illustratedSample2, illustratedSample3, illustratedSample4, illustratedSample5, illustratedSample6, illustratedSample7];
+const storytellingSamples = [storytellingSample1, storytellingSample2, storytellingSample3, storytellingSample4, storytellingSample5, storytellingSample6, storytellingSample7];
 
 const professionalSamples = [professionalSample1, professionalSample2, professionalSample3, professionalSample4, professionalSample5, professionalSample6, professionalSample7];
 
@@ -67,7 +75,7 @@ const carouselStyles = [
   { id: "dark", name: "Тёмный", samples: darkSamples, subtitle: null, noPhoto: false },
   { id: "illustrated", name: "Персонаж", samples: illustratedSamples, subtitle: "Загрузи своё фото — на его основе создаётся твой 3D персонаж", noPhoto: false },
   { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples, subtitle: "Фото не требуется — стиль на основе схем и данных", noPhoto: true },
-  { id: "storytelling", name: "Сторителлинг", samples: [] as string[], subtitle: "Фото не требуется — каждый слайд иллюстрирует сцену из истории", noPhoto: true },
+  { id: "storytelling", name: "Сторителлинг", samples: storytellingSamples, subtitle: "Фото не требуется — каждый слайд иллюстрирует сцену из истории", noPhoto: true },
 ];
 
 const styleIdToName: Record<string, string> = {
