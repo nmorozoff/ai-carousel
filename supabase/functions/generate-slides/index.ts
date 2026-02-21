@@ -63,7 +63,7 @@ async function cleanSlideImage(
     formData.append("image", new Blob([bytes], { type: mimeType }), `slide.${ext}`);
     formData.append("title", title || "Instagram carousel");
     formData.append("author", "");
-    formData.append("software", "Adobe Photoshop 25.0");
+    formData.append("software", "Adobe Lightroom Classic 13.0");
     formData.append("keywords", keywords || "Instagram карусель");
 
     const res = await fetch("https://mcp-kv.ru/ai-delete/api/clean", {
