@@ -412,13 +412,18 @@ Preserve: face shape, hair color, skin tone,
 general appearance — transform to Pixar/Disney
 3D style but keep person recognizable.
 Do NOT create a random character.
-If no photo uploaded — show error message to user.
 
-CRITICAL: The 3D character must be IDENTICAL
-across ALL 7 slides.
-Same hair color, same hairstyle, same face,
-same skin tone, same clothing style.
-Do NOT change the character between slides.
+CRITICAL — CHARACTER CONSISTENCY:
+Generate a detailed character description
+on slide 1 and store it as reference.
+Character: brown-haired woman,
+Pixar/Disney 3D style, professional look.
+On slides 2-7: COPY EXACTLY the character
+from slide 1. Same face, same hair length,
+same hair color, same skin tone.
+Clothing COLOR may vary per slide,
+but style stays professional.
+DO NOT change face or hair between slides.
 
 FORMAT: 1080x1350px vertical (4:5 ratio).
 NOT square. NOT 1080x1080px.
