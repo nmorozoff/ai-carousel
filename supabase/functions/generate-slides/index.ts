@@ -78,18 +78,43 @@ async function cleanSlideImage(
       return { imageBase64, mimeType };
     }
 
-    const rawBody = await res.text();
-    console.log(`AI Cleaner response preview: ${rawBody.slice(0, 300)}`);
+    const contentType = res.headers.get("content-type") || "";
     
+    // If API returns binary image directly (not JSON)
+    if (contentType.startsWith("image/")) {
+      const buffer = await res.arrayBuffer();
+      const cleanedBytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < cleanedBytes.length; i++) {
+        binary += String.fromCharCode(cleanedBytes[i]);
+      }
+      const returnMime = contentType.split(";")[0].trim() || mimeType;
+      console.log(`AI Cleaner: slide cleaned successfully (binary ${returnMime}, ${cleanedBytes.length} bytes)`);
+      return { imageBase64: btoa(binary), mimeType: returnMime };
+    }
+
+    // If API returns JSON with download_url or base64
+    const rawBody = await res.text();
     let cleaned: any;
     try {
       cleaned = JSON.parse(rawBody);
     } catch {
-      console.warn("AI Cleaner returned non-JSON response, using original");
+      // Not JSON and not image — could be raw binary without proper content-type
+      // Try treating as binary image
+      const buffer = new TextEncoder().encode(rawBody);
+      if (buffer.length > 1000 && rawBody.charCodeAt(0) === 0xFF && rawBody.charCodeAt(1) === 0xD8) {
+        // JPEG magic bytes detected
+        let binary = "";
+        for (let i = 0; i < buffer.length; i++) {
+          binary += String.fromCharCode(buffer[i]);
+        }
+        console.log(`AI Cleaner: slide cleaned (raw JPEG detected, ${buffer.length} bytes)`);
+        return { imageBase64: btoa(binary), mimeType: "image/jpeg" };
+      }
+      console.warn("AI Cleaner returned unknown format, using original");
       return { imageBase64, mimeType };
     }
 
-    // If API returns download_url — fetch and re-encode to base64
     if (cleaned.download_url) {
       console.log(`AI Cleaner: fetching cleaned file from ${cleaned.download_url}`);
       const fileRes = await fetch(cleaned.download_url);
@@ -106,7 +131,6 @@ async function cleanSlideImage(
       console.log(`AI Cleaner: slide cleaned successfully via download_url`);
       return { imageBase64: btoa(binary), mimeType };
     }
-    // If API returns base64 directly
     if (cleaned.image_base64) {
       console.log(`AI Cleaner: slide cleaned successfully via base64`);
       return { imageBase64: cleaned.image_base64, mimeType: cleaned.mime_type || mimeType };
