@@ -137,6 +137,11 @@ const Dashboard = () => {
 
   const handleGenerate = async () => {
     if (!text.trim()) return;
+
+    if (selectedStyle === "illustrated" && userPhotos.length === 0) {
+      toast.error("Загрузите фото для создания персонажа");
+      return;
+    }
     setIsGenerating(true);
     setResults(null);
     setCaption(null);
@@ -365,7 +370,7 @@ const Dashboard = () => {
         >
           <Button
             onClick={handleGenerate}
-            disabled={!text.trim() || isGenerating}
+            disabled={!text.trim() || isGenerating || (selectedStyle === "illustrated" && userPhotos.length === 0)}
             className="w-full bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity h-12 text-base mb-6"
           >
             {isGenerating ? (
