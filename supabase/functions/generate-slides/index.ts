@@ -60,7 +60,7 @@ async function cleanSlideImage(
 
     const ext = mimeType === "image/jpeg" ? "jpeg" : "png";
     const formData = new FormData();
-    formData.append("image", new Blob([bytes], { type: mimeType }), `slide.${ext}`);
+    formData.append("file", new Blob([bytes], { type: mimeType }), `slide.${ext}`);
     formData.append("title", title || "Instagram carousel");
     formData.append("author", "");
     formData.append("software", "Adobe Lightroom Classic 13.0");
