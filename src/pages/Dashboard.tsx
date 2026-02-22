@@ -152,17 +152,50 @@ const Dashboard = () => {
         return match ? match[1] : p;
       });
 
-      const { data, error } = await supabase.functions.invoke("generate-slides", {
-        body: {
-          userText: text,
-          funnel: cta,
-          style: styleIdToName[selectedStyle] || "Профессиональный",
-          userPhotos: photosRaw,
-        },
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || "Ошибка генерации");
+      let data: any;
+      let error: any;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/generate-slides`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": anonKey,
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userText: text,
+            funnel: cta,
+            style: styleIdToName[selectedStyle] || "Профессиональный",
+            userPhotos: photosRaw,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(errText || `HTTP ${response.status}`);
+        }
+
+        data = await response.json();
+      } catch (e: any) {
+        clearTimeout(timeoutId);
+        if (e.name === "AbortError") {
+          throw new Error("Генерация заняла слишком много времени. Попробуйте снова.");
+        }
+        throw e;
+      }
+
+      if (!data?.success) throw new Error(data?.error || "Ошибка генерации");
 
       setResults(data.slides);
       setCaption(data.caption || null);

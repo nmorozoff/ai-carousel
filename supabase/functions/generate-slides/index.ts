@@ -622,8 +622,9 @@ serve(async (req) => {
     // Step 2: Generate images sequentially (to avoid Gemini rate limits)
     const rawSlides: { index: number; title: string; content: string; imageBase64: string; mimeType: string; error?: string }[] = [];
 
-    for (let i = 0; i < slideContents.length; i++) {
-      const slide = slideContents[i];
+    const maxSlides = slideContents.slice(0, 7);
+    for (let i = 0; i < maxSlides.length; i++) {
+      const slide = maxSlides[i];
       try {
         const imageData = await generateSlideImage(
           i + 1,
