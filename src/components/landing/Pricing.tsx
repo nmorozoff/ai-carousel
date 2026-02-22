@@ -5,32 +5,34 @@ import { Link } from "react-router-dom";
 
 const plans = [
   {
-    name: "Prompt Only",
-    price: "10 ₽",
-    icon: Copy,
-    desc: "Пост, транскрибация рилс, тезисы или мысли → готовый промт за секунды",
-    highlight: false,
-    features: [
-      "Готовый мега-промт для Nanobanana Pro",
-      "Текст + стиль оформления карусели",
-      "Просто копи-паст — и слайды готовы",
-      "Не нужно разбираться в ИИ",
-      "Инструкция как подключить Nanobanana Pro за копейки на год — генерируй контент бесконечно",
-    ],
-  },
-  {
-    name: "Full AI",
-    price: "10 ₽",
+    name: "Всё включено",
+    price: "490 ₽",
     icon: Sparkles,
     desc: "Пост, транскрибация рилс, тезисы или мысли → готовые PNG-слайды автоматически",
     highlight: true,
     features: [
-      "Всё из тарифа Prompt Only",
+      "Генерация до 200 каруселей",
       "Готовые PNG слайды 1080×1350 (4:5) — сразу в соцсети",
-      "Очистка метаданных — соцсети не распознают ИИ и не режут охваты (в разработке 🚧)",
+      "Готовое описание для карусели",
+      "Очистка метаданных — соцсети не распознают ИИ и не режут охваты",
       "Скачивание ZIP одним кликом",
       "Полная автоматизация — ноль усилий",
       "7 слайдов за секунды",
+    ],
+  },
+  {
+    name: "Под ключ",
+    price: "15 000 ₽",
+    icon: Copy,
+    desc: "Индивидуальная установка сервиса с полным сопровождением",
+    highlight: false,
+    features: [
+      "Пожизненное пользование сервисом",
+      "Свой API-ключ для генерации на 90 дней",
+      "Разработка одного индивидуального стиля",
+      "Полное сопровождение и настройка",
+      "Помощь в покупке и установке на хостинг",
+      "Запуск до 3-х дней",
     ],
   },
 ];
@@ -52,7 +54,7 @@ const Pricing = () => (
         viewport={{ once: true }}
         className="text-muted-foreground text-center mb-12"
       >
-        Одна оплата — навсегда ваше
+        Найдите подходящий вариант
       </motion.p>
 
       <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -79,7 +81,7 @@ const Pricing = () => (
               <h3 className="font-heading font-bold text-xl mb-1">{plan.name}</h3>
               <p className="text-sm text-muted-foreground mb-4">{plan.desc}</p>
               <div className="text-4xl font-heading font-bold text-gradient mb-1">{plan.price}</div>
-              <p className="text-xs text-muted-foreground mb-6">в месяц</p>
+              <p className="text-xs text-muted-foreground mb-6">{plan.highlight ? "в месяц" : "единоразово"}</p>
 
               <ul className="text-left space-y-3 mb-8">
                 {plan.features.map((f) => {
@@ -93,7 +95,7 @@ const Pricing = () => (
                 })}
               </ul>
 
-              <Link to={`/payment?plan=${plan.highlight ? "full_ai" : "prompt_only"}`}>
+              <Link to={`/payment?plan=${plan.highlight ? "full_ai" : "turnkey"}`}>
                 <Button
                   className="w-full border-0 hover:opacity-90 transition-opacity text-base h-12 bg-gradient-primary text-primary-foreground"
                 >

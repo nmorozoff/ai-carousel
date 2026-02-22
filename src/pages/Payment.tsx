@@ -9,31 +9,33 @@ import type { Session } from "@supabase/supabase-js";
 
 const plans = [
   {
-    id: "prompt_only",
-    name: "Prompt Only",
-    price: "10 ₽",
-    amount: 10,
-    icon: Copy,
-    desc: "Готовый промт для Nanobanana Pro",
-    highlight: false,
-    features: [
-      "Готовый мега-промт для Nanobanana Pro",
-      "Текст + стиль оформления карусели",
-      "Просто копи-паст — и слайды готовы",
-    ],
-  },
-  {
     id: "full_ai",
-    name: "Full AI",
-    price: "10 ₽",
-    amount: 10,
+    name: "Всё включено",
+    price: "490 ₽",
+    amount: 490,
     icon: Sparkles,
     desc: "Готовые PNG-слайды автоматически",
     highlight: true,
     features: [
-      "Всё из тарифа Prompt Only",
-      "Готовые PNG слайды 1080×1350",
+      "Генерация до 200 каруселей",
+      "Готовое описание для карусели",
+      "Очистка метаданных",
       "Скачивание ZIP одним кликом",
+    ],
+  },
+  {
+    id: "turnkey",
+    name: "Под ключ",
+    price: "15 000 ₽",
+    amount: 15000,
+    icon: Copy,
+    desc: "Индивидуальная установка с сопровождением",
+    highlight: false,
+    features: [
+      "Пожизненное пользование",
+      "API-ключ на 90 дней",
+      "Индивидуальный стиль",
+      "Запуск до 3-х дней",
     ],
   },
 ];
@@ -123,7 +125,7 @@ const Payment = () => {
                     </div>
                   </div>
                   <div className="text-2xl font-heading font-bold text-gradient mb-1">{plan.price}</div>
-                  <p className="text-xs text-muted-foreground mb-3">в месяц</p>
+                  <p className="text-xs text-muted-foreground mb-3">{plan.highlight ? "в месяц" : "единоразово"}</p>
                   <ul className="space-y-1.5">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-xs">
