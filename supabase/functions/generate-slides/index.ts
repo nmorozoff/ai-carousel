@@ -412,31 +412,25 @@ Preserve: face shape, hair color, skin tone,
 general appearance — transform to Pixar/Disney
 3D style but keep person recognizable.
 Do NOT create a random character.
-If no photo uploaded — do not generate anything,
-show error message to user.
+If no photo uploaded — show error message to user.
 
 CRITICAL: The 3D character must be IDENTICAL
 across ALL 7 slides.
 Same hair color, same hairstyle, same face,
 same skin tone, same clothing style.
 Do NOT change the character between slides.
-Before generating each slide — reference
-the character description from slide 1
-and replicate exactly.
 
-VISUAL STYLE: 3D Illustrated Character — NO real person photo needed.
-Create a stylized friendly 3D cartoon avatar. Professional outfit, warm expressive face.
-Background: solid clean gradient ONLY within
-this strict palette — warm cream to white
-(#FFF8F0 → #FFFFFF).
-NO mint, NO lavender, NO purple, NO blue,
-NO teal gradients ever.
-Each slide same warm neutral family.
-Accent elements complement the background tone.
-Typography: Rounded friendly bold sans-serif.
-3D elements: Floating speech bubbles, lightbulbs, hearts, stars — placed at chest/hand level, NEVER near face.
-Atmosphere: Approachable, modern, premium app illustration.
-CRITICAL: No real photo needed — generate a stylized 3D avatar character automatically.`,
+FORMAT: 1080x1350px vertical (4:5 ratio).
+NOT square. NOT 1080x1080px.
+
+VISUAL STYLE: 3D Pixar/Disney character style.
+Background: pure white (#FFFFFF) only.
+NO gradients. NO cream. NO mint. NO lavender.
+NO purple. NO blue. NO teal. White only.
+Typography: Rounded bold sans-serif.
+3D elements: Floating icons at chest/hand level,
+NEVER near face.
+Atmosphere: Approachable, modern, premium.`,
 
       'Схемы & Инфографика': `
 VISUAL STYLE: Clean Data Infographic. NO person needed.
