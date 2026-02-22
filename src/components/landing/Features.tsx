@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Layers, Palette, Download, BookOpen, Zap, Heart } from "lucide-react";
+import { Layers, Palette, Download, BookOpen, Zap, Heart, ShieldCheck } from "lucide-react";
 
 const features = [
   { icon: Layers, title: "5 промтов для каруселей", desc: "Готовые формулы для создания продающих, обучающих и вовлекающих каруселей." },
   { icon: Palette, title: "7 стилей визуалов", desc: "Уникальные стили генерации — от минимализма до ярких дизайнов под вашу нишу." },
   { icon: Download, title: "Скачайте и используйте", desc: "Получите готовые PNG слайды или промты для самостоятельной генерации." },
+  { icon: ShieldCheck, title: "Очистка метаданных", desc: "Соцсети не распознают ИИ-контент — охваты не режутся, публикация безопасна." },
   { icon: BookOpen, title: "Инструкции с нуля", desc: "Подробные гайды: как начать с нейросетями, даже если вы новичок." },
   { icon: Zap, title: "Моментальный результат", desc: "Вставьте текст — получите контент для каруселей за считанные минуты." },
   { icon: Heart, title: "Для мягких ниш", desc: "Адаптировано для психологов, коучей, нумерологов и других экспертов." },
