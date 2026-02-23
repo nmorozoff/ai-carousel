@@ -29,24 +29,75 @@
 
 ---
 
-Ты — эксперт по созданию карусельных постов для Instagram/ВКонтакте.
-Создай 7 слайдов карусели на основе текста пользователя.
+Ты ассистент, который создаёт вирусные посты-карусели
+для экспертов мягких ниш (психологи, коучи, нумерологи).
 
 Стиль оформления: {style}
 
-Требования к слайдам:
-- Слайд 1: Цепляющий заголовок (hook) — максимум 7 слов
-- Слайды 2-6: Полезный контент, тезисы, ключевые мысли. Каждый слайд — 1-2 коротких предложения
-- Слайд 7: Призыв к действию (CTA): {funnel || "подбери сам по теме"}
+Создай ровно 7 слайдов на основе текста пользователя.
 
-Верни строго JSON без markdown блоков:
+ТЕКСТ ПОЛЬЗОВАТЕЛЯ:
+{userText}
+
+ВОРОНКА (последний слайд):
+{funnel}
+
+═══════════════════════════════════
+СТРУКТУРА 7 СЛАЙДОВ:
+═══════════════════════════════════
+
+СЛАЙД 1 — ОБЛОЖКА (крючок):
+- Заголовок: 2-3 строки, до 80 символов.
+  Вызывает реакцию: "это про меня", "надо глянуть", "что за фигня?"
+  Содержит крючок, вопрос, обещание или контраст.
+- Подзаголовок: 1-2 строки, пояснение или интрига.
+
+СЛАЙДЫ 2-6 — КОНТЕНТ (каждый слайд = 1 мысль):
+- Заголовок: 1 строка, ёмкий, с глаголом действия.
+  Может быть вопросом, провокацией, парадоксом.
+- Текст: Полные предложения с объяснениями.
+  Живой, разговорный, с дыханием и эмоцией.
+  Конкретные примеры, цифры, детали.
+  Рассказывай КАК и ПОЧЕМУ, а не только ЧТО.
+  Каждый слайд заканчивается так, чтобы
+  хотелось листать дальше (эффект скользкой горки).
+
+СЛАЙД 7 — ПРИЗЫВ:
+- Используй точно эту воронку: {funnel}
+- Коротко, конкретно, без давления.
+
+═══════════════════════════════════
+ЗАПРЕЩЕНО:
+═══════════════════════════════════
+- Списки из коротких фраз без объяснений
+- Телеграфный стиль ("• создаю базу • получаю результат")
+- Сухие перечисления без раскрытия
+- Обрывочные фразы вместо полных мыслей
+- Банальности типа "будьте позитивными"
+- Канцелярит и сложные термины
+- Слово "эксперт", "контент", "полезно"
+
+═══════════════════════════════════
+ОБЯЗАТЕЛЬНО:
+═══════════════════════════════════
+- 1 слайд = 1 законченная мысль
+- Каждый слайд мотивирует листать дальше
+- Живые примеры и визуальные образы
+- Текст читается с телефона — коротко, но полноценно
+- Сохраняй цифры, кейсы и детали из исходного текста
+
+Верни строго JSON без markdown:
 [
   {"title": "...", "content": "..."},
-  ...
+  {"title": "...", "content": "..."},
+  {"title": "...", "content": "..."},
+  {"title": "...", "content": "..."},
+  {"title": "...", "content": "..."},
+  {"title": "...", "content": "..."},
+  {"title": "...", "content": "..."}
 ]
 
-Return ONLY valid complete JSON array.
-No markdown, no backticks, no truncation.
+Ровно 7 объектов. Только JSON. Без пояснений.
 
 
 ════════════════════════════════════════════════════════════
@@ -120,7 +171,8 @@ Instagram carousel slide {slideNumber} of 7.
 Title text on slide: "{title}"
 {content ? `Body text: "${content}"` : ""}
 {hasPhotos && needsPhoto ? "Include a person in the slide that matches the uploaded reference photo." : ""}
-Square format 1080x1080, professional social media post, high quality, text clearly readable, modern design.
+Vertical format 1080x1350px (4:5 ratio). NOT square.
+Professional social media post, high quality, text clearly readable, modern design.
 Do NOT add any borders or watermarks.
 
 STYLE GUIDE:
@@ -147,20 +199,38 @@ Reference person photo above. Create slide {slideNumber} with this person featur
 
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
-Do NOT generate, replace or modify the person.
-Do NOT create a random or different woman.
 Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty,
-do not substitute with any generated person.
+If no photo uploaded — leave person area empty.
 
-VISUAL STYLE: Warm Classic Premium.
-Background: Soft warm cream (#FAF7F2) with subtle warm gradient.
-Colors: Deep burgundy (#8B1A1A) for headlines, warm gold (#C9A84C) accents, dark brown body text.
-Typography: Elegant bold serif headlines, clean sans-serif body.
-Lighting: Soft natural warm golden light. Studio quality.
-Decorative: Thin gold geometric lines in corners.
-Atmosphere: Warm, trustworthy, professional wellness brand.
-Person placement: Lower center, integrated into warm scene.
+FORMAT: 1080x1350px vertical (4:5). NOT square.
+
+VISUAL STYLE: Professional Psychology Office.
+SCENE: Real cozy psychology office interior.
+Warm neutral tones — beige, ivory, sage green.
+Natural light from window.
+Room elements: armchair, bookshelf with books,
+indoor plants, soft lamp, wooden desk, notepad.
+Atmosphere: safe, calm, professional warmth.
+
+PERSON: She is NATURALLY IN THE SCENE —
+not a cutout. Photographed IN this office.
+Warm natural light falls on her.
+
+POSES — vary per slide:
+Slide 1: sitting in armchair, notepad in lap
+Slide 2: standing by window, soft light behind
+Slide 3: sitting at desk with laptop, looking up
+Slide 4: standing near bookshelf, arms relaxed
+Slide 5: sitting in armchair, tablet in hands
+Slide 6: sitting at desk, pen in hand
+Slide 7: warm smile, inviting gesture
+
+TEXT: top area of image, white rounded card.
+Headlines: deep burgundy (#8B1A1A), bold serif.
+Accent: warm gold (#C9A84C).
+Thin gold geometric lines in corners.
+NO plain gradient background.
+NO yellow circles or blobs.
 
 
 ────────────────────────────────────────
@@ -299,10 +369,11 @@ Atmosphere: Approachable, modern, premium.
 5.6  Схемы & Инфографика
 ────────────────────────────────────────
 
+FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 VISUAL STYLE: Clean Data Infographic. NO person needed.
 COLOR VARIATION RULE:
 Background: clean light tone, vary per slide:
-white / off-white / light gray / pale blue.
+white / off-white / light gray only.
 Accent: professional tone from:
 navy / teal / slate / deep blue family.
 Warning elements: warm tone from:
