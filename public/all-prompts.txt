@@ -399,11 +399,36 @@ Dark navy background (#0D1B2A) throughout.
 5.7  Сторителлинг
 ────────────────────────────────────────
 
+ДВУХЭТАПНАЯ ГЕНЕРАЦИЯ (для консистентности персонажей):
+
+ЭТАП 1: Генерируется слайд 1. После получения изображения
+через дополнительный Gemini-вызов извлекается описание персонажа:
+"Describe the main character in this image in detail:
+hair color, hair style, hair length, face features, skin tone,
+age, clothing. Return only a short English description,
+2-3 sentences maximum."
+
+ЭТАП 2: Слайды 2-7 генерируются параллельно, но каждый
+содержит блок:
+"MAIN CHARACTER CONSISTENCY:
+Use exactly this person in this slide:
+{characterDescription from slide 1}
+Same face, same hair, same appearance.
+Do NOT change or replace this character."
+
+---
+
 Generate ONE hyperrealistic photographic image (4:5 ratio, 1080x1350px).
 Style: Cinematic photography, Sony A7R, 35mm f/2.0.
 Real people, real locations. NOT illustration, NOT cartoon.
 For each slide — illustrate the EXACT SCENE described in the slide content.
 Characters must stay CONSISTENT across all slides (same faces, clothes, hair throughout the carousel).
+
+Render this text IN the image design:
+Title: '{title}'
+Body text: '{content}'
+Do NOT show raw labels like "TITLE:" or "BODY:" — render the text naturally as part of the design.
+
 TEXT PLACEMENT:
 - Bottom: Floating semi-transparent rounded rectangular glassmorphism plate (blur background).
 - Plate background: rgba(0,0,0,0.4).
@@ -411,6 +436,7 @@ TEXT PLACEMENT:
 - Width: ~90% of frame width.
 - Line 1: headline — white bold 32px, always in quotes like «Headline».
 - Lines 2-3: body text — white italic 24px, positioned below headline.
+- Do NOT show raw labels like "TITLE:" or "BODY:" — render the text naturally.
 SLIDE 1 ONLY: Large coral/peach colored text on the right side: ЛИСТАЙ → (bold, 50px).
 Slides 1-7: Small dark-grey rounded pill in top-right corner containing white text: X/7 (e.g. 1/7, 2/7).
 Lighting: warm cinematic sunset lighting (golden hour).

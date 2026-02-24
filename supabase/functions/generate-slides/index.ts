@@ -341,13 +341,48 @@ function parseJsonResponse(rawText: string): any {
   }
 }
 
+// Extract character description from a generated image (for storytelling consistency)
+async function describeCharacterFromImage(imageBase64: string, mimeType: string): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [
+              { inlineData: { mimeType, data: imageBase64 } },
+              { text: "Describe the main character in this image in detail: hair color, hair style, hair length, face features, skin tone, age, clothing. Return only a short English description, 2-3 sentences maximum." },
+            ],
+          }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 256 },
+        }),
+      }
+    );
+    if (!response.ok) {
+      console.warn(`Character description API error: ${response.status}`);
+      return "";
+    }
+    const data = await response.json();
+    const desc = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    console.log(`Character description extracted: ${desc.substring(0, 100)}...`);
+    return desc;
+  } catch (e) {
+    console.warn("Failed to extract character description:", e);
+    return "";
+  }
+}
+
 // Generate image for a slide using Gemini imagen
 async function generateSlideImage(
   slideNumber: number,
   title: string,
   content: string,
   style: string,
-  userPhotos: string[]
+  userPhotos: string[],
+  characterDescription?: string
 ): Promise<{ imageBase64: string; mimeType: string }> {
   const isLastSlide = slideNumber === 7;
   const isFirstSlide = slideNumber === 1;
@@ -534,6 +569,11 @@ Style: Cinematic photography, Sony A7R, 35mm f/2.0.
 Real people, real locations. NOT illustration, NOT cartoon.
 For each slide — illustrate the EXACT SCENE described in the slide content.
 Characters must stay CONSISTENT across all slides (same faces, clothes, hair throughout the carousel).
+
+Render this text IN the image design:
+Title: '${title}'
+Body text: '${content || ""}'
+
 TEXT PLACEMENT:
 - Bottom: Floating semi-transparent rounded rectangular glassmorphism plate (blur background).
 - Plate background: rgba(0,0,0,0.4).
@@ -541,6 +581,7 @@ TEXT PLACEMENT:
 - Width: ~90% of frame width.
 - Line 1: headline — white bold 32px, always in quotes like «Headline».
 - Lines 2-3: body text — white italic 24px, positioned below headline.
+- Do NOT show raw labels like "TITLE:" or "BODY:" — render the text naturally as part of the design.
 SLIDE 1 ONLY: Large coral/peach colored text on the right side: ЛИСТАЙ → (bold, 50px).
 Slides 1-7: Small dark-grey rounded pill in top-right corner containing white text: X/7 (e.g. 1/7, 2/7).
 Lighting: warm cinematic sunset lighting (golden hour).
@@ -555,8 +596,13 @@ Depth of field — foreground sharp, background soft bokeh.`,
   const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
 
-  const prompt = `MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
+  // Build character consistency block for storytelling
+  const characterBlock = (style === 'Сторителлинг' && characterDescription)
+    ? `\nMAIN CHARACTER CONSISTENCY:\nUse exactly this person in this slide:\n${characterDescription}\nSame face, same hair, same appearance.\nDo NOT change or replace this character.\n`
+    : "";
 
+  const prompt = `MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
+${characterBlock}
 Instagram carousel slide ${slideNumber} of 7.
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
 ${isLastSlide ? "This is the CTA slide — make it action-oriented with clear call to action." : ""}
@@ -702,31 +748,63 @@ serve(async (req) => {
 
     console.log(`Generated ${slideContents.length} slide texts, caption: ${caption.length} chars, SEO: ${seoMeta.title}`);
 
-    // Step 2: Generate ALL images in parallel
-    console.log("Generating all slide images in parallel...");
+    // Step 2: Generate images
     const maxSlides = slideContents.slice(0, 7);
-    const rawSlides = await Promise.all(
-      maxSlides.map(async (slide, i) => {
-        try {
-          const imageData = await generateSlideImage(
-            i + 1,
-            slide.title,
-            slide.content,
-            style || "Профессиональный",
-            userPhotos || []
-          );
-          console.log(`Slide ${i + 1} generated`);
-          return { index: i, title: slide.title, content: slide.content, ...imageData };
-        } catch (err) {
-          console.error(`Error generating slide ${i + 1}:`, err);
-          return {
-            index: i, title: slide.title, content: slide.content,
-            imageBase64: "", mimeType: "image/png",
-            error: err instanceof Error ? err.message : "Image generation failed",
-          };
-        }
-      })
-    );
+    const isStorytelling = (style || "Профессиональный") === "Сторителлинг";
+    let rawSlides: { index: number; title: string; content: string; imageBase64: string; mimeType: string; error?: string }[];
+
+    if (isStorytelling) {
+      // STORYTELLING: 2-stage generation for character consistency
+      console.log("Storytelling mode: generating slide 1 first for character extraction...");
+      
+      // Stage 1: Generate slide 1
+      let slide1Data: { imageBase64: string; mimeType: string };
+      let characterDescription = "";
+      try {
+        slide1Data = await generateSlideImage(1, maxSlides[0].title, maxSlides[0].content, style!, userPhotos || []);
+        console.log("Slide 1 generated, extracting character description...");
+        characterDescription = await describeCharacterFromImage(slide1Data.imageBase64, slide1Data.mimeType);
+      } catch (err) {
+        console.error("Error generating storytelling slide 1:", err);
+        slide1Data = { imageBase64: "", mimeType: "image/png" };
+      }
+
+      // Stage 2: Generate slides 2-7 in parallel with character description
+      console.log(`Generating slides 2-7 in parallel with character lock: "${characterDescription.substring(0, 80)}..."`);
+      const remainingSlides = await Promise.all(
+        maxSlides.slice(1).map(async (slide, i) => {
+          const slideNum = i + 2;
+          try {
+            const imageData = await generateSlideImage(slideNum, slide.title, slide.content, style!, userPhotos || [], characterDescription);
+            console.log(`Slide ${slideNum} generated`);
+            return { index: i + 1, title: slide.title, content: slide.content, ...imageData };
+          } catch (err) {
+            console.error(`Error generating slide ${slideNum}:`, err);
+            return { index: i + 1, title: slide.title, content: slide.content, imageBase64: "", mimeType: "image/png", error: err instanceof Error ? err.message : "Image generation failed" };
+          }
+        })
+      );
+
+      rawSlides = [
+        { index: 0, title: maxSlides[0].title, content: maxSlides[0].content, ...slide1Data },
+        ...remainingSlides,
+      ];
+    } else {
+      // ALL OTHER STYLES: parallel generation
+      console.log("Generating all slide images in parallel...");
+      rawSlides = await Promise.all(
+        maxSlides.map(async (slide, i) => {
+          try {
+            const imageData = await generateSlideImage(i + 1, slide.title, slide.content, style || "Профессиональный", userPhotos || []);
+            console.log(`Slide ${i + 1} generated`);
+            return { index: i, title: slide.title, content: slide.content, ...imageData };
+          } catch (err) {
+            console.error(`Error generating slide ${i + 1}:`, err);
+            return { index: i, title: slide.title, content: slide.content, imageBase64: "", mimeType: "image/png", error: err instanceof Error ? err.message : "Image generation failed" };
+          }
+        })
+      );
+    }
 
     // Step 3: Clean ALL slides in parallel via AI Cleaner
     console.log("Cleaning all slides in parallel...");
