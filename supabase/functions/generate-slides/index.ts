@@ -702,31 +702,31 @@ serve(async (req) => {
 
     console.log(`Generated ${slideContents.length} slide texts, caption: ${caption.length} chars, SEO: ${seoMeta.title}`);
 
-    // Step 2: Generate images sequentially (to avoid Gemini rate limits)
-    const rawSlides: { index: number; title: string; content: string; imageBase64: string; mimeType: string; error?: string }[] = [];
-
+    // Step 2: Generate ALL images in parallel
+    console.log("Generating all slide images in parallel...");
     const maxSlides = slideContents.slice(0, 7);
-    for (let i = 0; i < maxSlides.length; i++) {
-      const slide = maxSlides[i];
-      try {
-        const imageData = await generateSlideImage(
-          i + 1,
-          slide.title,
-          slide.content,
-          style || "Профессиональный",
-          userPhotos || []
-        );
-        rawSlides.push({ index: i, title: slide.title, content: slide.content, ...imageData });
-        console.log(`Slide ${i + 1} generated`);
-      } catch (err) {
-        console.error(`Error generating slide ${i + 1}:`, err);
-        rawSlides.push({
-          index: i, title: slide.title, content: slide.content,
-          imageBase64: "", mimeType: "image/png",
-          error: err instanceof Error ? err.message : "Image generation failed",
-        });
-      }
-    }
+    const rawSlides = await Promise.all(
+      maxSlides.map(async (slide, i) => {
+        try {
+          const imageData = await generateSlideImage(
+            i + 1,
+            slide.title,
+            slide.content,
+            style || "Профессиональный",
+            userPhotos || []
+          );
+          console.log(`Slide ${i + 1} generated`);
+          return { index: i, title: slide.title, content: slide.content, ...imageData };
+        } catch (err) {
+          console.error(`Error generating slide ${i + 1}:`, err);
+          return {
+            index: i, title: slide.title, content: slide.content,
+            imageBase64: "", mimeType: "image/png",
+            error: err instanceof Error ? err.message : "Image generation failed",
+          };
+        }
+      })
+    );
 
     // Step 3: Clean ALL slides in parallel via AI Cleaner
     console.log("Cleaning all slides in parallel...");
