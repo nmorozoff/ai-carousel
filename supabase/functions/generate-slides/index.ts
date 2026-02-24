@@ -388,7 +388,10 @@ Headlines: deep burgundy (#8B1A1A), bold serif.
 Accent: warm gold (#C9A84C).
 Thin gold geometric lines in corners.
 NO plain gradient background.
-NO yellow circles or blobs.`,
+NO yellow circles or blobs.
+
+FORMAT: 1080x1350px vertical (4:5 ratio).
+NOT square. NOT 1080x1080px.`,
 
       'Светлый': `
 CRITICAL RULE — PERSON IN SLIDES:
@@ -414,7 +417,10 @@ Massive size contrast between headline and body text.
 Person placement: RIGHT half of image, large, bottom-aligned, slightly cut at knees. Takes up 55% of width.
 Text placement: LEFT 45% of image, stacked vertically, lots of breathing room between elements.
 Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic. Clean, intentional.
-Person and text overlap slightly at shoulder zone.`,
+Person and text overlap slightly at shoulder zone.
+
+FORMAT: 1080x1350px vertical (4:5 ratio).
+NOT square. NOT 1080x1080px.`,
 
       'Инфографика с экспертом': `
 CRITICAL RULE — PERSON IN SLIDES:
@@ -518,7 +524,9 @@ Warning elements: warm tone from:
 coral / red-orange / salmon family.
 Typography: Bold modern Montserrat-style sans-serif.
 Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
-Atmosphere: Educational, authoritative, consulting quality.`,
+Atmosphere: Educational, authoritative, consulting quality.
+When relevant — embed real photo in a rounded card/frame in upper half, infographic elements in lower half.
+Dark navy background (#0D1B2A) throughout.`,
 
       'Сторителлинг': `
 Generate ONE hyperrealistic photographic image (4:5 ratio, 1080x1350px).
@@ -547,14 +555,19 @@ Depth of field — foreground sharp, background soft bokeh.`,
   const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
 
-  const prompt = `Instagram carousel slide ${slideNumber} of 7.
+  const prompt = `MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
+
+Instagram carousel slide ${slideNumber} of 7.
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
 ${isLastSlide ? "This is the CTA slide — make it action-oriented with clear call to action." : ""}
-Title text on slide: "${title}"
-${content ? `Body text: "${content}"` : ""}
 ${hasPhotos && needsPhoto ? "Include a person in the slide that matches the uploaded reference photo." : ""}
-Vertical format 1080x1350px (4:5 ratio). NOT square. Professional social media post, high quality, text clearly readable, modern design.
+Vertical format 1080x1350px (4:5 ratio). NOT square. Professional social media post, high quality, modern design.
 Do NOT add any borders or watermarks.
+
+RENDER THIS TEXT IN THE IMAGE:
+TITLE: '${title}'
+BODY: '${content || ""}'
+Typography: bold, high contrast, perfectly legible on mobile.
 
 STYLE GUIDE:
 ${styleDesc}
