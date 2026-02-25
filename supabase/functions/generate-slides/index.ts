@@ -10,146 +10,65 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const AI_CLEANER_API_KEY = Deno.env.get("AI_CLEANER_API_KEY");
 
-// Generate SEO metadata using Gemini text model
-async function generateSeoMeta(userText: string): Promise<{ title: string; keywords: string }> {
+// ─── Helpers ───
+
+function parseJsonResponse(rawText: string): any {
+  const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{
-              text: `На основе текста ниже верни JSON без markdown:
-{"title": "тема карусели в 5-7 слов", "keywords": "до 8 ключевых слов через запятую, релевантных теме, нише психолога, Instagram"}
-Только JSON, без пояснений.
-ТЕКСТ: ${userText}`,
-            }],
-          }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
-        }),
-      }
-    );
-    if (!response.ok) return { title: "", keywords: "Instagram карусель" };
-    const data = await response.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     return JSON.parse(cleaned);
   } catch {
-    return { title: "", keywords: "Instagram карусель" };
-  }
-}
-
-// Clean slide image via AI Cleaner API (multipart, base64 → binary)
-async function cleanSlideImage(
-  imageBase64: string,
-  mimeType: string,
-  title: string,
-  keywords: string
-): Promise<{ imageBase64: string; mimeType: string }> {
-  if (!AI_CLEANER_API_KEY) return { imageBase64, mimeType };
-  try {
-    // Convert base64 to Uint8Array binary
-    const binaryStr = atob(imageBase64);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-
-    const ext = mimeType === "image/jpeg" ? "jpeg" : "png";
-    const formData = new FormData();
-    formData.append("file", new Blob([bytes], { type: mimeType }), `slide.${ext}`);
-    formData.append("title", title || "Instagram carousel");
-    formData.append("author", "");
-    formData.append("software", "Adobe Lightroom Classic 13.0");
-    formData.append("keywords", keywords || "Instagram карусель");
-
-    const res = await fetch("https://mcp-kv.ru/ai-delete/api/clean", {
-      method: "POST",
-      headers: { "X-API-Key": AI_CLEANER_API_KEY },
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.warn(`AI Cleaner returned ${res.status}: ${errBody}, using original`);
-      return { imageBase64, mimeType };
-    }
-
-    const contentType = res.headers.get("content-type") || "";
-    
-    // If API returns binary image directly (not JSON)
-    if (contentType.startsWith("image/")) {
-      const buffer = await res.arrayBuffer();
-      const cleanedBytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < cleanedBytes.length; i++) {
-        binary += String.fromCharCode(cleanedBytes[i]);
-      }
-      const returnMime = contentType.split(";")[0].trim() || mimeType;
-      console.log(`AI Cleaner: slide cleaned successfully (binary ${returnMime}, ${cleanedBytes.length} bytes)`);
-      return { imageBase64: btoa(binary), mimeType: returnMime };
-    }
-
-    // If API returns JSON with download_url or base64
-    const rawBody = await res.text();
-    let cleaned: any;
-    try {
-      cleaned = JSON.parse(rawBody);
-    } catch {
-      // Not JSON and not image — could be raw binary without proper content-type
-      // Try treating as binary image
-      const buffer = new TextEncoder().encode(rawBody);
-      if (buffer.length > 1000 && rawBody.charCodeAt(0) === 0xFF && rawBody.charCodeAt(1) === 0xD8) {
-        // JPEG magic bytes detected
-        let binary = "";
-        for (let i = 0; i < buffer.length; i++) {
-          binary += String.fromCharCode(buffer[i]);
+    const match = cleaned.match(/[\[\{][\s\S]*[\]\}]/);
+    if (match) {
+      try { return JSON.parse(match[0]); } catch {
+        const fixed = match[0].replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\t' ? ch : "");
+        try { return JSON.parse(fixed); } catch {
+          throw new Error(`Failed to parse Gemini response: ${cleaned.substring(0, 200)}`);
         }
-        console.log(`AI Cleaner: slide cleaned (raw JPEG detected, ${buffer.length} bytes)`);
-        return { imageBase64: btoa(binary), mimeType: "image/jpeg" };
       }
-      console.warn("AI Cleaner returned unknown format, using original");
-      return { imageBase64, mimeType };
     }
-
-    if (cleaned.download_url) {
-      console.log(`AI Cleaner: fetching cleaned file from ${cleaned.download_url}`);
-      const fileRes = await fetch(cleaned.download_url);
-      if (!fileRes.ok) {
-        console.warn(`AI Cleaner download failed: ${fileRes.status}`);
-        return { imageBase64, mimeType };
-      }
-      const buffer = await fileRes.arrayBuffer();
-      const cleanedBytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < cleanedBytes.length; i++) {
-        binary += String.fromCharCode(cleanedBytes[i]);
-      }
-      console.log(`AI Cleaner: slide cleaned successfully via download_url`);
-      return { imageBase64: btoa(binary), mimeType };
-    }
-    if (cleaned.image_base64) {
-      console.log(`AI Cleaner: slide cleaned successfully via base64`);
-      return { imageBase64: cleaned.image_base64, mimeType: cleaned.mime_type || mimeType };
-    }
-
-    console.warn("AI Cleaner: response has no download_url or image_base64, using original");
-    return { imageBase64, mimeType };
-  } catch (e) {
-    console.warn("AI Cleaner error, using original:", e);
-    return { imageBase64, mimeType };
+    throw new Error(`Invalid JSON from Gemini: ${cleaned.substring(0, 200)}`);
   }
 }
 
-// Generate slide content (text only) using Gemini text model
-async function generateSlideContent(
-  userText: string,
-  funnel: string,
-  style: string
-): Promise<{ title: string; content: string }[]> {
+// ─── Auth helper ───
+
+async function authenticateAndCheckSubscription(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw { status: 401, message: "Unauthorized" };
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    throw { status: 401, message: "Unauthorized" };
+  }
+
+  const userId = claimsData.claims.sub;
+  const { data: sub } = await supabaseClient
+    .from("subscriptions")
+    .select("expires_at")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!sub || new Date(sub.expires_at) <= new Date()) {
+    throw { status: 403, message: "Subscription required" };
+  }
+
+  return { userId, supabaseClient };
+}
+
+// ─── MODE: text ───
+// Generates slide texts, caption, and SEO meta. Lightweight, fast.
+
+async function generateSlideContent(userText: string, funnel: string, style: string): Promise<{ title: string; content: string }[]> {
   const funnelText = funnel || "подбери сам по теме";
   const systemPrompt = `Ты ассистент, который создаёт вирусные посты-карусели для экспертов мягких ниш (психологи, коучи, нумерологи).
 
@@ -242,11 +161,7 @@ ${funnelText}
   return parseJsonResponse(rawText);
 }
 
-// Generate caption (post description) using Gemini text model
-async function generateCaption(
-  userText: string,
-  funnel: string,
-): Promise<string> {
+async function generateCaption(userText: string, funnel: string): Promise<string> {
   const captionPrompt = `Ты — живой копирайтер для психологов и экспертов.
 Пишешь как человек, а не как робот.
 На основе текста ниже напиши описание для поста в Instagram.
@@ -304,45 +219,12 @@ ${funnel || "Подбери сам по теме"}
     }
   );
 
-  if (!response.ok) {
-    console.warn(`Caption API error ${response.status}, returning empty`);
-    return "";
-  }
-
+  if (!response.ok) return "";
   const data = await response.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 }
 
-// Robust JSON parser with fallback
-function parseJsonResponse(rawText: string): any {
-  const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch (e) {
-    console.warn("Direct JSON parse failed, attempting extraction...");
-    const match = cleaned.match(/[\[\{][\s\S]*[\]\}]/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch (e2) {
-        const fixed = match[0]
-          .replace(/,\s*}/g, "}")
-          .replace(/,\s*]/g, "]")
-          .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\t' ? ch : "");
-        try {
-          return JSON.parse(fixed);
-        } catch (e3) {
-          throw new Error(`Failed to parse Gemini response: ${cleaned.substring(0, 200)}`);
-        }
-      }
-    }
-    throw new Error(`Invalid JSON from Gemini: ${cleaned.substring(0, 200)}`);
-  }
-}
-
-// Extract character description from a generated image (for storytelling consistency)
-async function describeCharacterFromImage(imageBase64: string, mimeType: string): Promise<string> {
+async function generateSeoMeta(userText: string): Promise<{ title: string; keywords: string }> {
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -352,44 +234,33 @@ async function describeCharacterFromImage(imageBase64: string, mimeType: string)
         body: JSON.stringify({
           contents: [{
             role: "user",
-            parts: [
-              { inlineData: { mimeType, data: imageBase64 } },
-              { text: "Describe the main character in this image in detail: hair color, hair style, hair length, face features, skin tone, age, clothing. Return only a short English description, 2-3 sentences maximum." },
-            ],
+            parts: [{
+              text: `На основе текста ниже верни JSON без markdown:
+{"title": "тема карусели в 5-7 слов", "keywords": "до 8 ключевых слов через запятую, релевантных теме, нише психолога, Instagram"}
+Только JSON, без пояснений.
+ТЕКСТ: ${userText}`,
+            }],
           }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 256 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
         }),
       }
     );
-    if (!response.ok) {
-      console.warn(`Character description API error: ${response.status}`);
-      return "";
-    }
+    if (!response.ok) return { title: "", keywords: "Instagram карусель" };
     const data = await response.json();
-    const desc = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-    console.log(`Character description extracted: ${desc.substring(0, 100)}...`);
-    return desc;
-  } catch (e) {
-    console.warn("Failed to extract character description:", e);
-    return "";
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return { title: "", keywords: "Instagram карусель" };
   }
 }
 
-// Generate image for a slide using Gemini imagen
-async function generateSlideImage(
-  slideNumber: number,
-  title: string,
-  content: string,
-  style: string,
-  userPhotos: string[],
-  characterDescription?: string
-): Promise<{ imageBase64: string; mimeType: string }> {
-  const isLastSlide = slideNumber === 7;
-  const isFirstSlide = slideNumber === 1;
+// ─── MODE: image ───
+// Generates ONE slide image. Called per-slide from frontend.
 
-  function getStyleGuide(s: string): string {
-    const styles: Record<string, string> = {
-      'Профессиональный': `
+function getStyleGuide(style: string): string {
+  const styles: Record<string, string> = {
+    'Профессиональный': `
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Preserve exactly: face, hair, skin, appearance.
@@ -428,7 +299,7 @@ NO yellow circles or blobs.
 FORMAT: 1080x1350px vertical (4:5 ratio).
 NOT square. NOT 1080x1080px.`,
 
-      'Светлый': `
+    'Светлый': `
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
@@ -457,7 +328,7 @@ Person and text overlap slightly at shoulder zone.
 FORMAT: 1080x1350px vertical (4:5 ratio).
 NOT square. NOT 1080x1080px.`,
 
-      'Инфографика с экспертом': `
+    'Инфографика с экспертом': `
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
@@ -480,7 +351,7 @@ Elements show data visually — before/after, pros/cons, step-by-step, compariso
 Scene: Expert in relevant environment — kitchen, office, classroom, outdoors — matching the content topic.
 Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.`,
 
-      'Тёмный': `
+    'Тёмный': `
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
@@ -514,7 +385,7 @@ ATMOSPHERE: Cinematic, emotional, premium therapy brand.
 Like a luxury film still. Intimate, wise, safe presence.
 NO clinical coldness. NO flat design elements.`,
 
-      'Персонаж': `
+    'Персонаж': `
 CRITICAL RULE — CHARACTER CREATION:
 Use ONLY the photo uploaded by the user
 as the BASE for creating the 3D character.
@@ -547,7 +418,7 @@ Typography: Rounded bold sans-serif.
 NEVER near face.
 Atmosphere: Approachable, modern, premium.`,
 
-      'Схемы & Инфографика': `
+    'Схемы & Инфографика': `
 FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 VISUAL STYLE: Clean Data Infographic. NO person needed.
 COLOR VARIATION RULE:
@@ -563,16 +434,12 @@ Atmosphere: Educational, authoritative, consulting quality.
 When relevant — embed real photo in a rounded card/frame in upper half, infographic elements in lower half.
 Dark navy background (#0D1B2A) throughout.`,
 
-      'Сторителлинг': `
+    'Сторителлинг': `
 Generate ONE hyperrealistic photographic image (4:5 ratio, 1080x1350px).
 Style: Cinematic photography, Sony A7R, 35mm f/2.0.
 Real people, real locations. NOT illustration, NOT cartoon.
 For each slide — illustrate the EXACT SCENE described in the slide content.
 Characters must stay CONSISTENT across all slides (same faces, clothes, hair throughout the carousel).
-
-Render this text IN the image design:
-Title: '${title}'
-Body text: '${content || ""}'
 
 TEXT PLACEMENT:
 - Bottom: Floating semi-transparent rounded rectangular glassmorphism plate (blur background).
@@ -587,19 +454,33 @@ Slides 1-7: Small dark-grey rounded pill in top-right corner containing white te
 Lighting: warm cinematic sunset lighting (golden hour).
 Each scene: dramatically expressive characters, emotions readable.
 Depth of field — foreground sharp, background soft bokeh.`,
-    };
-    return styles[s] || styles['Профессиональный'];
-  }
+  };
+  return styles[style] || styles['Профессиональный'];
+}
 
+async function generateOneSlideImage(
+  slideNumber: number,
+  title: string,
+  content: string,
+  style: string,
+  userPhotos: string[],
+  characterDescription?: string
+): Promise<{ imageBase64: string; mimeType: string }> {
+  const isLastSlide = slideNumber === 7;
+  const isFirstSlide = slideNumber === 1;
   const styleDesc = getStyleGuide(style);
   const hasPhotos = userPhotos && userPhotos.length > 0;
   const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
 
-  // Build character consistency block for storytelling
   const characterBlock = (style === 'Сторителлинг' && characterDescription)
     ? `\nMAIN CHARACTER CONSISTENCY:\nUse exactly this person in this slide:\n${characterDescription}\nSame face, same hair, same appearance.\nDo NOT change or replace this character.\n`
     : "";
+
+  // For storytelling, render text in image differently
+  const renderTextBlock = style === 'Сторителлинг'
+    ? `Render this text IN the image design:\nTitle: '${title}'\nBody text: '${content || ""}'`
+    : `RENDER THIS TEXT IN THE IMAGE:\nTITLE: '${title}'\nBODY: '${content || ""}'\nTypography: bold, high contrast, perfectly legible on mobile.`;
 
   const prompt = `MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
 ${characterBlock}
@@ -610,10 +491,7 @@ ${hasPhotos && needsPhoto ? "Include a person in the slide that matches the uplo
 Vertical format 1080x1350px (4:5 ratio). NOT square. Professional social media post, high quality, modern design.
 Do NOT add any borders or watermarks.
 
-RENDER THIS TEXT IN THE IMAGE:
-TITLE: '${title}'
-BODY: '${content || ""}'
-Typography: bold, high contrast, perfectly legible on mobile.
+${renderTextBlock}
 
 STYLE GUIDE:
 ${styleDesc}
@@ -624,17 +502,11 @@ CRITICAL RULE FOR 3D ELEMENTS:
 - Elements should appear to rest on a surface OR float beside the expert's hands, not behind her.
 - Keep expert's head and face completely clean — no glows, halos, or objects overlapping the face area.`;
 
-  // Build parts array
   const parts: any[] = [];
 
-  // Add reference photos if available and style supports them
   if (hasPhotos && needsPhoto && userPhotos.length > 0) {
-    // Use first photo as reference
     parts.push({
-      inlineData: {
-        mimeType: "image/jpeg",
-        data: userPhotos[0],
-      },
+      inlineData: { mimeType: "image/jpeg", data: userPhotos[0] },
     });
     parts.push({
       text: `Reference person photo above. Create slide ${slideNumber} with this person featured naturally in the design.\n${prompt}`,
@@ -650,9 +522,7 @@ CRITICAL RULE FOR 3D ELEMENTS:
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
-        generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"],
-        },
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
       }),
     }
   );
@@ -664,18 +534,118 @@ CRITICAL RULE FOR 3D ELEMENTS:
 
   const data = await response.json();
   const candidate = data.candidates?.[0]?.content?.parts || [];
-
   for (const part of candidate) {
     if (part.inlineData) {
-      return {
-        imageBase64: part.inlineData.data,
-        mimeType: part.inlineData.mimeType || "image/png",
-      };
+      return { imageBase64: part.inlineData.data, mimeType: part.inlineData.mimeType || "image/png" };
     }
   }
-
   throw new Error(`No image returned for slide ${slideNumber}`);
 }
+
+// ─── MODE: describe-character ───
+
+async function describeCharacterFromImage(imageBase64: string, mimeType: string): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [
+              { inlineData: { mimeType, data: imageBase64 } },
+              { text: "Describe the main character in this image in detail: hair color, hair style, hair length, face features, skin tone, age, clothing. Return only a short English description, 2-3 sentences maximum." },
+            ],
+          }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 256 },
+        }),
+      }
+    );
+    if (!response.ok) return "";
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+// ─── MODE: clean ───
+
+async function cleanSlideImage(
+  imageBase64: string,
+  mimeType: string,
+  title: string,
+  keywords: string
+): Promise<{ imageBase64: string; mimeType: string }> {
+  if (!AI_CLEANER_API_KEY) return { imageBase64, mimeType };
+  try {
+    const binaryStr = atob(imageBase64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+    const ext = mimeType === "image/jpeg" ? "jpeg" : "png";
+    const formData = new FormData();
+    formData.append("file", new Blob([bytes], { type: mimeType }), `slide.${ext}`);
+    formData.append("title", title || "Instagram carousel");
+    formData.append("author", "");
+    formData.append("software", "Adobe Lightroom Classic 13.0");
+    formData.append("keywords", keywords || "Instagram карусель");
+
+    const res = await fetch("https://mcp-kv.ru/ai-delete/api/clean", {
+      method: "POST",
+      headers: { "X-API-Key": AI_CLEANER_API_KEY },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.warn(`AI Cleaner returned ${res.status}: ${errBody}`);
+      return { imageBase64, mimeType };
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.startsWith("image/")) {
+      const buffer = await res.arrayBuffer();
+      const cleanedBytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < cleanedBytes.length; i++) binary += String.fromCharCode(cleanedBytes[i]);
+      return { imageBase64: btoa(binary), mimeType: contentType.split(";")[0].trim() || mimeType };
+    }
+
+    const rawBody = await res.text();
+    let cleaned: any;
+    try { cleaned = JSON.parse(rawBody); } catch {
+      const buffer = new TextEncoder().encode(rawBody);
+      if (buffer.length > 1000 && rawBody.charCodeAt(0) === 0xFF && rawBody.charCodeAt(1) === 0xD8) {
+        let binary = "";
+        for (let i = 0; i < buffer.length; i++) binary += String.fromCharCode(buffer[i]);
+        return { imageBase64: btoa(binary), mimeType: "image/jpeg" };
+      }
+      return { imageBase64, mimeType };
+    }
+
+    if (cleaned.download_url) {
+      const fileRes = await fetch(cleaned.download_url);
+      if (!fileRes.ok) return { imageBase64, mimeType };
+      const buffer = await fileRes.arrayBuffer();
+      const cleanedBytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < cleanedBytes.length; i++) binary += String.fromCharCode(cleanedBytes[i]);
+      return { imageBase64: btoa(binary), mimeType };
+    }
+    if (cleaned.image_base64) {
+      return { imageBase64: cleaned.image_base64, mimeType: cleaned.mime_type || mimeType };
+    }
+    return { imageBase64, mimeType };
+  } catch (e) {
+    console.warn("AI Cleaner error:", e);
+    return { imageBase64, mimeType };
+  }
+}
+
+// ─── Main handler ───
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -683,203 +653,116 @@ serve(async (req) => {
   }
 
   try {
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
-    }
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
-    // ── Auth check: only authenticated users can generate ──
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { userId } = await authenticateAndCheckSubscription(req).catch((e: any) => {
+      throw e;
+    });
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const body = await req.json();
+    const mode = body.mode || "text";
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // ── Check active subscription ──
-    const userId = claimsData.claims.sub;
-    const { data: sub } = await supabaseClient
-      .from("subscriptions")
-      .select("expires_at")
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (!sub || new Date(sub.expires_at) <= new Date()) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Subscription required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { userText, funnel, style, userPhotos } = await req.json();
-
-    if (!userText || !userText.trim()) {
-      return new Response(
-        JSON.stringify({ success: false, error: "userText is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`Generating slides for style: ${style}`);
-    const startTime = Date.now();
-
-    // Step 1: Generate slide content (text), caption, and SEO meta in parallel
-    const [slideContents, caption, seoMeta] = await Promise.all([
-      generateSlideContent(userText, funnel || "", style || "Профессиональный"),
-      generateCaption(userText, funnel || ""),
-      generateSeoMeta(userText),
-    ]);
-
-    console.log(`Generated ${slideContents.length} slide texts, caption: ${caption.length} chars, SEO: ${seoMeta.title}`);
-
-    // Step 2: Generate images
-    const maxSlides = slideContents.slice(0, 7);
-    const isStorytelling = (style || "Профессиональный") === "Сторителлинг";
-    let rawSlides: { index: number; title: string; content: string; imageBase64: string; mimeType: string; error?: string }[];
-
-    if (isStorytelling) {
-      // STORYTELLING: 2-stage generation for character consistency
-      console.log("Storytelling mode: generating slide 1 first for character extraction...");
-      
-      // Stage 1: Generate slide 1
-      let slide1Data: { imageBase64: string; mimeType: string };
-      let characterDescription = "";
-      try {
-        slide1Data = await generateSlideImage(1, maxSlides[0].title, maxSlides[0].content, style!, userPhotos || []);
-        console.log("Slide 1 generated, extracting character description...");
-        characterDescription = await describeCharacterFromImage(slide1Data.imageBase64, slide1Data.mimeType);
-      } catch (err) {
-        console.error("Error generating storytelling slide 1:", err);
-        slide1Data = { imageBase64: "", mimeType: "image/png" };
+    // ─── MODE: text ───
+    if (mode === "text") {
+      const { userText, funnel, style } = body;
+      if (!userText?.trim()) {
+        return new Response(JSON.stringify({ success: false, error: "userText is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      // Stage 2: Generate slides 2-7 in parallel with character description
-      console.log(`Generating slides 2-7 in parallel with character lock: "${characterDescription.substring(0, 80)}..."`);
-      const remainingSlides = await Promise.all(
-        maxSlides.slice(1).map(async (slide, i) => {
-          const slideNum = i + 2;
-          try {
-            const imageData = await generateSlideImage(slideNum, slide.title, slide.content, style!, userPhotos || [], characterDescription);
-            console.log(`Slide ${slideNum} generated`);
-            return { index: i + 1, title: slide.title, content: slide.content, ...imageData };
-          } catch (err) {
-            console.error(`Error generating slide ${slideNum}:`, err);
-            return { index: i + 1, title: slide.title, content: slide.content, imageBase64: "", mimeType: "image/png", error: err instanceof Error ? err.message : "Image generation failed" };
-          }
-        })
-      );
+      console.log(`[text] Generating texts for style: ${style}`);
+      const [slideContents, caption, seoMeta] = await Promise.all([
+        generateSlideContent(userText, funnel || "", style || "Профессиональный"),
+        generateCaption(userText, funnel || ""),
+        generateSeoMeta(userText),
+      ]);
 
-      rawSlides = [
-        { index: 0, title: maxSlides[0].title, content: maxSlides[0].content, ...slide1Data },
-        ...remainingSlides,
-      ];
-    } else {
-      // ALL OTHER STYLES: parallel generation
-      console.log("Generating all slide images in parallel...");
-      rawSlides = await Promise.all(
-        maxSlides.map(async (slide, i) => {
-          try {
-            const imageData = await generateSlideImage(i + 1, slide.title, slide.content, style || "Профессиональный", userPhotos || []);
-            console.log(`Slide ${i + 1} generated`);
-            return { index: i, title: slide.title, content: slide.content, ...imageData };
-          } catch (err) {
-            console.error(`Error generating slide ${i + 1}:`, err);
-            return { index: i, title: slide.title, content: slide.content, imageBase64: "", mimeType: "image/png", error: err instanceof Error ? err.message : "Image generation failed" };
-          }
-        })
-      );
-    }
-
-    // Step 3: Clean ALL slides in parallel via AI Cleaner
-    console.log("Cleaning all slides in parallel...");
-    let cleanedCount = 0;
-    let cleanFailedCount = 0;
-    const slideResults = await Promise.all(
-      rawSlides.map(async (slide) => {
-        if (slide.error || !slide.imageBase64) {
-          return { slideNumber: slide.index + 1, title: slide.title, content: slide.content, imageBase64: slide.imageBase64, mimeType: slide.mimeType, error: slide.error };
-        }
-        const original = slide.imageBase64;
-        const cleaned = await cleanSlideImage(slide.imageBase64, slide.mimeType, seoMeta.title, seoMeta.keywords);
-        if (cleaned.imageBase64 !== original) {
-          cleanedCount++;
-          console.log(`Slide ${slide.index + 1} cleaned successfully`);
-        } else {
-          cleanFailedCount++;
-          console.warn(`Slide ${slide.index + 1} NOT cleaned (returned original)`);
-        }
-        return { slideNumber: slide.index + 1, title: slide.title, content: slide.content, imageBase64: cleaned.imageBase64, mimeType: cleaned.mimeType };
-      })
-    );
-
-    const durationMs = Date.now() - startTime;
-
-    // Count errors
-    const imageErrors = slideResults.filter(s => s.error || !s.imageBase64).length;
-    const summaryError = imageErrors > 0
-      ? `${imageErrors}/${slideResults.length} slides failed image generation`
-      : null;
-
-    console.log(`Summary: ${slideResults.length} slides, ${imageErrors} image errors, ${cleanedCount} cleaned, ${cleanFailedCount} clean failed, ${durationMs}ms`);
-
-    // Save generation log (without base64 images to save space)
-    const slidesForLog = slideResults.map(({ imageBase64: _, ...rest }) => rest);
-    try {
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-      await supabaseAdmin.from("generation_logs").insert({
-        user_id: userId,
-        style: style || "Профессиональный",
-        funnel: funnel || null,
-        user_text: userText,
-        slide_count: slideResults.length,
-        caption,
-        duration_ms: durationMs,
-        slides_json: slidesForLog,
-        error: summaryError,
-      });
-      console.log(`Generation log saved (${durationMs}ms)`);
-    } catch (logErr) {
-      console.error("Failed to save generation log:", logErr);
-    }
-
-    return new Response(
-      JSON.stringify({
+      return new Response(JSON.stringify({
         success: true,
-        slides: slideResults,
+        slides: slideContents.slice(0, 7),
         caption,
-      }),
-      {
+        seoMeta,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── MODE: image ───
+    if (mode === "image") {
+      const { slideNumber, title, content, style, userPhotos, characterDescription } = body;
+      console.log(`[image] Generating slide ${slideNumber} image`);
+
+      const imageData = await generateOneSlideImage(
+        slideNumber, title, content || "",
+        style || "Профессиональный",
+        userPhotos || [],
+        characterDescription
+      );
+
+      return new Response(JSON.stringify({
+        success: true,
+        imageBase64: imageData.imageBase64,
+        mimeType: imageData.mimeType,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── MODE: describe-character ───
+    if (mode === "describe-character") {
+      const { imageBase64, mimeType } = body;
+      console.log("[describe-character] Extracting character description...");
+      const description = await describeCharacterFromImage(imageBase64, mimeType || "image/png");
+      return new Response(JSON.stringify({ success: true, description }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── MODE: clean ───
+    if (mode === "clean") {
+      const { imageBase64, mimeType, title, keywords } = body;
+      console.log(`[clean] Cleaning slide image`);
+      const cleaned = await cleanSlideImage(imageBase64, mimeType || "image/png", title || "", keywords || "");
+      return new Response(JSON.stringify({
+        success: true,
+        imageBase64: cleaned.imageBase64,
+        mimeType: cleaned.mimeType,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── MODE: log ───
+    if (mode === "log") {
+      const { style, funnel, userText, slideCount, caption, durationMs, slidesJson, error } = body;
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        await supabaseAdmin.from("generation_logs").insert({
+          user_id: userId,
+          style: style || "Профессиональный",
+          funnel: funnel || null,
+          user_text: userText,
+          slide_count: slideCount,
+          caption,
+          duration_ms: durationMs,
+          slides_json: slidesJson,
+          error,
+        });
+      } catch (logErr) {
+        console.error("Failed to save log:", logErr);
       }
-    );
-  } catch (err) {
-    console.error("generate-slides error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ success: false, error: message }),
-      {
-        status: 500,
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+      });
+    }
+
+    return new Response(JSON.stringify({ success: false, error: `Unknown mode: ${mode}` }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err: any) {
+    const status = err.status || 500;
+    const message = err.message || (err instanceof Error ? err.message : "Unknown error");
+    console.error("generate-slides error:", message);
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
+import { orchestrateGeneration } from "@/lib/generation-orchestrator";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import professionalSample1 from "@/assets/samples/professional-1.jpeg";
@@ -103,6 +104,7 @@ const Dashboard = () => {
   const [cta, setCta] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState("");
   const [results, setResults] = useState<SlideResult[] | null>(null);
   const [caption, setCaption] = useState<string | null>(null);
   const [captionCopied, setCaptionCopied] = useState(false);
@@ -145,6 +147,7 @@ const Dashboard = () => {
     setIsGenerating(true);
     setResults(null);
     setCaption(null);
+    setGenerationStatus("Подготовка...");
 
     try {
       const photosRaw = userPhotos.map((p) => {
@@ -152,53 +155,24 @@ const Dashboard = () => {
         return match ? match[1] : p;
       });
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Необходима авторизация");
 
-      let data: any;
-      let error: any;
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-        const response = await fetch(`${supabaseUrl}/functions/v1/generate-slides`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": anonKey,
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            userText: text,
-            funnel: cta,
-            style: styleIdToName[selectedStyle] || "Профессиональный",
-            userPhotos: photosRaw,
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(errText || `HTTP ${response.status}`);
+      const result = await orchestrateGeneration(
+        token,
+        text,
+        cta,
+        styleIdToName[selectedStyle] || "Профессиональный",
+        photosRaw,
+        {
+          onStatus: (status) => setGenerationStatus(status),
+          onSlideReady: (num) => setGenerationStatus(`Слайд ${num} готов ✓`),
         }
+      );
 
-        data = await response.json();
-      } catch (e: any) {
-        clearTimeout(timeoutId);
-        if (e.name === "AbortError") {
-          throw new Error("Генерация заняла слишком много времени. Попробуйте снова.");
-        }
-        throw e;
-      }
-
-      if (!data?.success) throw new Error(data?.error || "Ошибка генерации");
-
-      setResults(data.slides);
-      setCaption(data.caption || null);
+      setResults(result.slides);
+      setCaption(result.caption || null);
       setActiveTab("slides");
       toast.success("Слайды успешно сгенерированы!");
 
@@ -208,7 +182,7 @@ const Dashboard = () => {
         await supabase.from("activity_log").insert({
           user_id: session.user.id,
           action: "generate_slides",
-          details: { style: styleIdToName[selectedStyle], slides_count: data.slides?.length || 0 },
+          details: { style: styleIdToName[selectedStyle], slides_count: result.slides?.length || 0 },
         });
       }
     } catch (err: any) {
@@ -216,6 +190,7 @@ const Dashboard = () => {
       toast.error(err.message || "Произошла ошибка при генерации");
     } finally {
       setIsGenerating(false);
+      setGenerationStatus("");
     }
   };
 
@@ -409,7 +384,7 @@ const Dashboard = () => {
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Генерация...
+                {generationStatus || "Генерация..."}
               </>
             ) : (
               "Генерировать слайды карусели"
@@ -428,8 +403,8 @@ const Dashboard = () => {
             >
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
               <div className="text-center">
-                <p className="font-heading font-semibold text-lg">Генерируем и очищаем слайды...</p>
-                <p className="text-sm text-muted-foreground mt-1">Это займёт 1-2 минуты ☕</p>
+                <p className="font-heading font-semibold text-lg">{generationStatus || "Генерируем слайды..."}</p>
+                <p className="text-sm text-muted-foreground mt-1">Батчевая генерация по 3 слайда ☕</p>
               </div>
             </motion.div>
           )}
