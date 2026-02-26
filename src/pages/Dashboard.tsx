@@ -209,10 +209,53 @@ const Dashboard = () => {
       const ext = slide.mimeType?.includes("png") ? "png" : "jpg";
       zip.file(`slide-${slide.slideNumber}.${ext}`, slide.imageBase64, { base64: true });
     });
+
+    // Build post-description.txt
+    const descParts: string[] = [];
+    if (caption) {
+      // Extract hashtags from caption
+      const hashtagRegex = /#[а-яА-ЯёЁa-zA-Z0-9_]+/g;
+      const allHashtags = caption.match(hashtagRegex) || [];
+      const captionWithoutHashtags = caption.replace(hashtagRegex, "").replace(/\n{3,}/g, "\n\n").trim();
+
+      descParts.push(captionWithoutHashtags);
+      descParts.push("");
+
+      // Ensure exactly 5 hashtags
+      let hashtags = allHashtags.slice(0, 5);
+      if (hashtags.length < 5) {
+        const fallback = ["#эксперт", "#контент", "#карусель", "#маркетинг", "#продвижение", "#бизнес", "#smm"];
+        const existing = new Set(hashtags.map(h => h.toLowerCase()));
+        for (const fb of fallback) {
+          if (hashtags.length >= 5) break;
+          if (!existing.has(fb)) {
+            hashtags.push(fb);
+            existing.add(fb);
+          }
+        }
+      }
+      descParts.push(hashtags.join(" "));
+    }
+
+    if (cta) {
+      descParts.push("");
+      descParts.push(cta);
+    }
+
+    if (descParts.length > 0) {
+      zip.file("post-description.txt", descParts.join("\n"));
+    }
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const datePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const timePart = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
+    const fileName = `carousel-${datePart}-${timePart}.zip`;
+
     const blob = await zip.generateAsync({ type: "blob" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "carousel.zip";
+    link.download = fileName;
     link.click();
     URL.revokeObjectURL(link.href);
 
