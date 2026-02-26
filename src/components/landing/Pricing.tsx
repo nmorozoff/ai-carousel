@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 const plans = [
   {
     name: "Всё включено",
-    price: "490 ₽",
+    price: "2 990 ₽",
     icon: Sparkles,
     desc: "Пост, транскрибация рилс, тезисы или мысли → готовые PNG-слайды автоматически",
     highlight: true,
@@ -22,7 +22,7 @@ const plans = [
   },
   {
     name: "Под ключ",
-    price: "15 000 ₽",
+    price: "10 000 ₽",
     icon: Copy,
     desc: "Индивидуальная установка сервиса с полным сопровождением",
     highlight: false,

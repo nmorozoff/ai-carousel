@@ -11,8 +11,8 @@ const plans = [
   {
     id: "full_ai",
     name: "Всё включено",
-    price: "490 ₽",
-    amount: 490,
+    price: "2 990 ₽",
+    amount: 2990,
     icon: Sparkles,
     desc: "Готовые PNG-слайды автоматически",
     highlight: true,
@@ -26,8 +26,8 @@ const plans = [
   {
     id: "turnkey",
     name: "Под ключ",
-    price: "15 000 ₽",
-    amount: 15000,
+    price: "10 000 ₽",
+    amount: 10000,
     icon: Copy,
     desc: "Индивидуальная установка с сопровождением",
     highlight: false,
