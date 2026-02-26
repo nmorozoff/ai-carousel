@@ -386,37 +386,45 @@ Like a luxury film still. Intimate, wise, safe presence.
 NO clinical coldness. NO flat design elements.`,
 
     'Персонаж': `
-CRITICAL RULE — CHARACTER CREATION:
-Use ONLY the photo uploaded by the user
-as the BASE for creating the 3D character.
-Preserve: face shape, hair color, skin tone,
-general appearance — transform to Pixar/Disney
-3D style but keep person recognizable.
-Do NOT create a random character.
+CRITICAL — CHARACTER DESCRIPTION (fix once):
+Before generating any slides, create this exact character and use her on ALL 7 slides:
+Woman, Pixar/Disney 3D style.
+Appearance based on uploaded photo:
+- Hair: blonde, shoulder length, straight
+- Glasses: thin rectangular pink/purple frames
+- Age: 45-50 years
+- Skin: light, fair
+- Style: professional, light blue blazer over white blouse
+- Expression: calm, wise, professional
 
-CRITICAL — CHARACTER CONSISTENCY:
-Generate a detailed character description
-on slide 1 and store it as reference.
-Character: brown-haired woman,
-Pixar/Disney 3D style, professional look.
-On slides 2-7: COPY EXACTLY the character
-from slide 1. Same face, same hair length,
-same hair color, same skin tone.
-Clothing COLOR may vary per slide,
-but style stays professional.
-DO NOT change face or hair between slides.
+THIS EXACT CHARACTER on every single slide.
+Same hair. Same glasses. Same face. Same age.
+DO NOT make her younger or change appearance.
+DO NOT remove glasses.
+DO NOT change hair color to brown.
 
-FORMAT: 1080x1350px vertical (4:5 ratio).
-NOT square. NOT 1080x1080px.
+FORMAT: 1080x1350px vertical (4:5). NOT square.
 
-VISUAL STYLE: 3D Pixar/Disney character style.
-Background: pure white (#FFFFFF) only.
-NO gradients. NO cream. NO mint. NO lavender.
-NO purple. NO blue. NO teal. White only.
-Typography: Rounded bold sans-serif.
-3D elements: Floating icons at chest/hand level,
-NEVER near face.
-Atmosphere: Approachable, modern, premium.`,
+BACKGROUND: pure white (#FFFFFF) only.
+NO gradients. NO colors. White only.
+
+TYPOGRAPHY — CRITICAL:
+Same font on ALL 7 slides.
+Font: rounded bold sans-serif, dark navy (#1A2B4A) for all headlines.
+Body text: same font, regular weight, dark gray (#3D3D3D).
+Headline: left-aligned, top area, large.
+Body: left-aligned, below headline, medium.
+NO centered text. NO text with outline/stroke.
+NO mixed fonts between slides.
+
+3D ELEMENTS:
+Floating icons at chest/hand level only.
+NEVER near or behind face.
+Style: soft 3D clay/plastic, warm colors.
+1-2 icons per slide maximum — not more.
+
+SLIDE NUMBERING:
+Top right corner: small gray rounded pill white text "X/7". Every slide.`,
 
     'Схемы & Инфографика': `
 FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
