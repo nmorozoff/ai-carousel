@@ -297,7 +297,22 @@ NO plain gradient background.
 NO yellow circles or blobs.
 
 FORMAT: 1080x1350px vertical (4:5 ratio).
-NOT square. NOT 1080x1080px.`,
+NOT square. NOT 1080x1080px.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Светлый': `
 CRITICAL RULE — PERSON IN SLIDES:
@@ -326,7 +341,22 @@ Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthe
 Person and text overlap slightly at shoulder zone.
 
 FORMAT: 1080x1350px vertical (4:5 ratio).
-NOT square. NOT 1080x1080px.`,
+NOT square. NOT 1080x1080px.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Инфографика с экспертом': `
 CRITICAL RULE — PERSON IN SLIDES:
@@ -349,7 +379,22 @@ Props appear naturally in expert's hands or on table in front.
 INFOGRAPHIC ELEMENTS: Place diagrams, charts, comparison tables, icons, arrows, checkmarks to the RIGHT of or around the expert.
 Elements show data visually — before/after, pros/cons, step-by-step, comparison columns.
 Scene: Expert in relevant environment — kitchen, office, classroom, outdoors — matching the content topic.
-Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.`,
+Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Тёмный': `
 CRITICAL RULE — PERSON IN SLIDES:
@@ -383,7 +428,22 @@ Never on bright areas. Text must be readable.
 Gold serif for headline. White for body text.
 ATMOSPHERE: Cinematic, emotional, premium therapy brand.
 Like a luxury film still. Intimate, wise, safe presence.
-NO clinical coldness. NO flat design elements.`,
+NO clinical coldness. NO flat design elements.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Персонаж': `
 CRITICAL — CHARACTER DESCRIPTION (fix once):
@@ -424,7 +484,22 @@ Style: soft 3D clay/plastic, warm colors.
 1-2 icons per slide maximum — not more.
 
 SLIDE NUMBERING:
-Top right corner: small gray rounded pill white text "X/7". Every slide.`,
+Top right corner: small gray rounded pill white text "X/7". Every slide.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Схемы & Инфографика': `
 FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
@@ -440,7 +515,22 @@ Typography: Bold modern Montserrat-style sans-serif.
 Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
 Atmosphere: Educational, authoritative, consulting quality.
 When relevant — embed real photo in a rounded card/frame in upper half, infographic elements in lower half.
-Dark navy background (#0D1B2A) throughout.`,
+Dark navy background (#0D1B2A) throughout.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Сторителлинг': `
 Generate ONE hyperrealistic photographic image (4:5 ratio, 1080x1350px).
@@ -461,7 +551,22 @@ SLIDE 1 ONLY: Large coral/peach colored text on the right side: ЛИСТАЙ →
 Slides 1-7: Small dark-grey rounded pill in top-right corner containing white text: X/7 (e.g. 1/7, 2/7).
 Lighting: warm cinematic sunset lighting (golden hour).
 Each scene: dramatically expressive characters, emotions readable.
-Depth of field — foreground sharp, background soft bokeh.`,
+Depth of field — foreground sharp, background soft bokeh.
+
+PHOTOGRAPHY PARAMETERS:
+Camera: Sony A7R IV
+Lens: 85mm f/1.4 prime lens
+Aperture: f/1.4-f/2.0 (shallow depth of field)
+Shutter: natural motion
+ISO: 400-800 (slight organic grain)
+Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
+Depth of field: subject sharp, background soft bokeh
+Lighting: natural + one practical light source
+Mood: editorial photography, magazine quality
+
+RENDER QUALITY:
+8K resolution, photorealistic, no AI artifacts, no plastic skin,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
   };
   return styles[style] || styles['Профессиональный'];
 }
