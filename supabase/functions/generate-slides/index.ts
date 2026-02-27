@@ -66,7 +66,6 @@ async function authenticateAndCheckSubscription(req: Request) {
 }
 
 // ─── MODE: text ───
-// FIX 5 — полностью новый промт текстов слайдов
 
 async function generateSlideContent(userText: string, funnel: string, style: string): Promise<{ title: string; content: string }[]> {
   const funnelText = funnel || "подбери сам по теме";
@@ -232,7 +231,7 @@ async function generateSeoMeta(userText: string): Promise<{ title: string; keywo
   }
 }
 
-// ─── FIX 6 — Auto style enhancement ───
+// ─── Auto style enhancement ───
 
 async function generateAutoStyleEnhancement(
   userText: string,
@@ -270,11 +269,11 @@ Return ONLY the enhancement text. No headers. No explanations.`;
   }
 }
 
-// ─── MODE: image ───
+// ─── Style guides ───
 
 function getStyleGuide(style: string): string {
   const styles: Record<string, string> = {
-    // FIX 2 — Профессиональный полностью заменён
+
     'Профессиональный': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
 PRIORITY ORDER — follow strictly:
@@ -315,11 +314,15 @@ Accent text: warm terracotta (#C0614A).
 Thin warm-toned geometric lines in corners.
 NO plain gradient background. NO yellow blobs. NO circles.
 
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
+
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
 Lens: 85mm f/1.4 prime lens
 Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
 ISO: 400-800 (slight organic grain)
 Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
 Depth of field: subject sharp, background soft bokeh
@@ -335,37 +338,33 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
-Do NOT create a random or different woman.
 Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty,
-do not substitute with any generated person.
+If no photo uploaded — leave person area empty.
 
 VISUAL STYLE: Light Premium Editorial — magazine cover style.
 COLOR VARIATION RULE:
 Each slide — choose ONE background tone from warm light family:
 peach / cream / blush / ivory / warm white.
-Each slide different tone within this family.
-Accent: one tone from warm medium family:
-coral / salmon / terracotta / dusty rose.
-Vary slightly slide to slide.
-ONE thin coral line along RIGHT edge only. NO random geometric shapes floating.
-Colors: Dark navy (#1A2B4A) main headlines, coral accent word or line, gray body text.
-Typography: Very large bold condensed sans-serif headlines stacked in 3-4 lines left-aligned.
-Massive size contrast between headline and body text.
-Person placement: RIGHT half of image, large, bottom-aligned, slightly cut at knees. Takes up 55% of width.
-Text placement: LEFT 45% of image, stacked vertically, lots of breathing room between elements.
-Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic. Clean, intentional.
-Person and text overlap slightly at shoulder zone.
+Accent: coral / salmon / terracotta / dusty rose.
+ONE thin coral line along RIGHT edge only.
+Colors: Dark navy (#1A2B4A) main headlines, coral accent, gray body text.
+Typography: Very large bold condensed sans-serif headlines stacked 3-4 lines left-aligned.
+Person placement: RIGHT half of image, large, bottom-aligned, slightly cut at knees.
+Text placement: LEFT 45% of image, stacked vertically.
+Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic.
+
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
 
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
 Lens: 85mm f/1.4 prime lens
 Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
 ISO: 400-800 (slight organic grain)
 Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
 Depth of field: subject sharp, background soft bokeh
-Lighting: natural + one practical light source
 Mood: editorial photography, magazine quality
 
 RENDER QUALITY:
@@ -377,34 +376,32 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
-Do NOT create a random or different woman.
 Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty,
-do not substitute with any generated person.
+If no photo uploaded — leave person area empty.
 
 VISUAL STYLE: Expert Infographic — educational and engaging.
-COLOR VARIATION RULE:
 Background: pure white (#FFFFFF) only.
 No mint, no green, no teal tones ever.
-Accent: bright tone from blue/green/coral family,
-vary per slide to keep energy fresh.
+Accent: bright tone from blue/green/coral family, vary per slide.
 PERSON: Place expert in CENTER or LEFT of image.
-Expert physically holds or interacts with REAL PROPS relevant to the slide topic — food, objects, documents, tools.
-Props appear naturally in expert's hands or on table in front.
-INFOGRAPHIC ELEMENTS: Place diagrams, charts, comparison tables, icons, arrows, checkmarks to the RIGHT of or around the expert.
-Elements show data visually — before/after, pros/cons, step-by-step, comparison columns.
-Scene: Expert in relevant environment — kitchen, office, classroom, outdoors — matching the content topic.
-Atmosphere: Educational, trustworthy, friendly expert sharing knowledge. Like a premium health or science blog.
+Expert physically holds or interacts with REAL PROPS relevant to the slide topic.
+INFOGRAPHIC ELEMENTS: diagrams, charts, comparison tables, icons, arrows to the RIGHT of expert.
+Atmosphere: Educational, trustworthy, friendly expert sharing knowledge.
+
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+This includes: headlines, body text, labels, diagram captions,
+infographic elements, chart labels, arrows with text.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
 
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
 Lens: 85mm f/1.4 prime lens
 Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
 ISO: 400-800 (slight organic grain)
 Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
 Depth of field: subject sharp, background soft bokeh
-Lighting: natural + one practical light source
 Mood: editorial photography, magazine quality
 
 RENDER QUALITY:
@@ -416,10 +413,8 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
-Do NOT create a random or different woman.
 Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty,
-do not substitute with any generated person.
+If no photo uploaded — leave person area empty.
 
 VISUAL STYLE: Cinematic Warm Dark — premium psychology brand.
 NO white backgrounds. NO infographics. NO diagrams.
@@ -427,10 +422,8 @@ NO 3D floating objects. NO glowing chains or stars.
 Pure cinematic atmospheric photography.
 COLOR PALETTE: Deep warm darks — burgundy (#3D0C11), rich amber, candlelight gold, soft warm shadows.
 Text: warm gold serif for headlines, soft white for body.
-PERSON: Extract from uploaded photo if provided.
-She must be INSIDE THE SCENE — physically part of the environment, not a cutout overlay.
+PERSON: She must be INSIDE THE SCENE — physically part of the environment, not a cutout overlay.
 Preserve exact face and appearance. Warm cinematic light falls on her naturally.
-Different atmospheric scene each slide.
 SCENES TO USE (rotate per slide):
 - Evening armchair near rainy window, candle, lamp, books
 - Standing at tall window, autumn park outside, silhouette
@@ -440,46 +433,44 @@ SCENES TO USE (rotate per slide):
 - Deep armchair, amber lamp light, looking upward
 - Doorway between dark room and warm lit corridor
 TEXT placement: on naturally dark areas of the photo.
-Never on bright areas. Text must be readable.
 Gold serif for headline. White for body text.
-ATMOSPHERE: Cinematic, emotional, premium therapy brand.
-Like a luxury film still. Intimate, wise, safe presence.
-NO clinical coldness. NO flat design elements.
+ATMOSPHERE: Cinematic, emotional, premium therapy brand. Like a luxury film still.
+
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
 
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
 Lens: 85mm f/1.4 prime lens
 Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
 ISO: 400-800 (slight organic grain)
 Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
 Depth of field: subject sharp, background soft bokeh
-Lighting: natural + one practical light source
 Mood: editorial photography, magazine quality
 
 RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    // FIX 3 — Персонаж: новый фон, FORMAT в начале, CHARACTER CONSISTENCY в конце
     'Персонаж': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
 CRITICAL — CHARACTER DESCRIPTION (fix once):
 Before generating any slides, create this exact character and use her on ALL 7 slides:
 Woman, Pixar/Disney 3D style.
-Appearance based on uploaded photo:
-- Hair: blonde, shoulder length, straight
-- Glasses: thin rectangular pink/purple frames
-- Age: 45-50 years
-- Skin: light, fair
-- Style: professional, light blue blazer over white blouse
-- Expression: calm, wise, professional
-
+Appearance — use ONLY the uploaded reference photo to determine:
+- Hair color, length and style — copy exactly from photo
+- Glasses — only if visible in photo
+- Age — match the person in photo
+- Skin tone — match exactly
+- Style: professional blazer matching her coloring
+DO NOT invent appearance. Copy from photo.
 THIS EXACT CHARACTER on every single slide.
-Same hair. Same glasses. Same face. Same age.
+Same hair. Same face. Same age. Consistent.
 DO NOT make her younger or change appearance.
 DO NOT remove glasses.
-DO NOT change hair color to brown.
+DO NOT change hair color.
 
 Background: warm cream to white gradient ONLY (#FFF8F0 → #FFFFFF).
 NO mint, NO lavender, NO purple, NO blue, NO teal. Ever.
@@ -497,62 +488,44 @@ NO mixed fonts between slides.
 Floating icons at chest/hand level only.
 NEVER near or behind face.
 Style: soft 3D clay/plastic, warm colors.
-1-2 icons per slide maximum — not more.
+1-2 icons per slide maximum.
 
 SLIDE NUMBERING:
 Top right corner: small gray rounded pill white text "X/7". Every slide.
 
-PHOTOGRAPHY PARAMETERS:
-Camera: Sony A7R IV
-Lens: 85mm f/1.4 prime lens
-Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
-ISO: 400-800 (slight organic grain)
-Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
-Depth of field: subject sharp, background soft bokeh
-Lighting: natural + one practical light source
-Mood: editorial photography, magazine quality
-
-RENDER QUALITY:
-8K resolution, photorealistic, no AI artifacts, no plastic skin,
-natural skin texture, film grain at 15% opacity, subtle vignette at edges
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
 
 CHARACTER CONSISTENCY:
 Keep clothing COLOR varied per slide but style identical.
 Same hair, same face, same proportions throughout.
-Base all slides on the character established in slide 1.`,
+Base all slides on the character established in slide 1.
 
-    // FIX 4 — Схемы & Инфографика: убран pale blue
+RENDER QUALITY:
+8K resolution, no AI artifacts, natural skin texture`,
+
     'Схемы & Инфографика': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
 VISUAL STYLE: Clean Data Infographic. NO person needed.
-COLOR VARIATION RULE:
-Background: clean light tone, vary per slide:
-white / off-white / light gray only.
-Accent: professional tone from:
-navy / teal / slate / deep blue family.
-Warning elements: warm tone from:
-coral / red-orange / salmon family.
+Background: clean light tone, vary per slide: white / off-white / light gray only.
+NO pale blue, NO mint, NO teal backgrounds.
+Accent: professional tone from navy / teal / slate / deep blue family.
+Warning elements: coral / red-orange / salmon family.
 Typography: Bold modern Montserrat-style sans-serif.
 Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
 Atmosphere: Educational, authoritative, consulting quality.
-When relevant — embed real photo in a rounded card/frame in upper half, infographic elements in lower half.
-Dark navy background (#0D1B2A) throughout.
 
-PHOTOGRAPHY PARAMETERS:
-Camera: Sony A7R IV
-Lens: 85mm f/1.4 prime lens
-Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
-ISO: 400-800 (slight organic grain)
-Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
-Depth of field: subject sharp, background soft bokeh
-Lighting: natural + one practical light source
-Mood: editorial photography, magazine quality
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+This includes: headlines, body text, labels, diagram captions,
+chart labels, arrows with text, all infographic elements.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
 
 RENDER QUALITY:
-8K resolution, photorealistic, no AI artifacts, no plastic skin,
-natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
+8K resolution, no AI artifacts, clean crisp edges`,
 
     'Сторителлинг': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
@@ -563,28 +536,30 @@ For each slide — illustrate the EXACT SCENE described in the slide content.
 Characters must stay CONSISTENT across all slides (same faces, clothes, hair throughout the carousel).
 
 TEXT PLACEMENT:
-- Bottom: Floating semi-transparent rounded rectangular glassmorphism plate (blur background).
+- Bottom: Floating semi-transparent rounded rectangular glassmorphism plate.
 - Plate background: rgba(0,0,0,0.4).
 - Position: Bottom center, slightly above the bottom edge.
 - Width: ~90% of frame width.
 - Line 1: headline — white bold 32px, always in quotes like «Headline».
 - Lines 2-3: body text — white italic 24px, positioned below headline.
-- Do NOT show raw labels like "TITLE:" or "BODY:" — render the text naturally as part of the design.
+- Do NOT show raw labels like "TITLE:" or "BODY:" — render the text naturally.
 SLIDE 1 ONLY: Large coral/peach colored text on the right side: ЛИСТАЙ → (bold, 50px).
-Slides 1-7: Small dark-grey rounded pill in top-right corner containing white text: X/7 (e.g. 1/7, 2/7).
+Slides 1-7: Small dark-grey rounded pill in top-right corner: X/7.
 Lighting: warm cinematic sunset lighting (golden hour).
 Each scene: dramatically expressive characters, emotions readable.
 Depth of field — foreground sharp, background soft bokeh.
+
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
 
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
 Lens: 85mm f/1.4 prime lens
 Aperture: f/1.4-f/2.0 (shallow depth of field)
-Shutter: natural motion
 ISO: 400-800 (slight organic grain)
-Color grade: cinematic LUT, warm shadows, lifted blacks, desaturated highlights
-Depth of field: subject sharp, background soft bokeh
-Lighting: natural + one practical light source
+Color grade: cinematic LUT, warm shadows, lifted blacks
 Mood: editorial photography, magazine quality
 
 RENDER QUALITY:
@@ -594,10 +569,11 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
   return styles[style] || styles['Профессиональный'];
 }
 
-// FIX 7 — Photo integration block for specific styles
+// ─── Photo integration block ───
+
 function getPhotoIntegrationBlock(style: string, hasPhotos: boolean): string {
   if (!hasPhotos) return "";
-  const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж'];
+  const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж', 'Инфографика с экспертом'];
   if (!photoStyles.includes(style)) return "";
   return `
 PHOTO INTEGRATION — CRITICAL:
@@ -615,6 +591,8 @@ She was photographed IN this scene, not added later.
 CONSISTENCY: Same face and hair across ALL 7 slides.
 `;
 }
+
+// ─── Generate one slide image ───
 
 async function generateOneSlideImage(
   slideNumber: number,
@@ -638,19 +616,24 @@ async function generateOneSlideImage(
 
   const photoIntegrationBlock = getPhotoIntegrationBlock(style, hasPhotos && needsPhoto);
 
-  // FIX 6 — auto style enhancement block
   const styleEnhancementBlock = autoStyleEnhancement
     ? `\nTOPIC-SPECIFIC STYLE ENHANCEMENT:\n${autoStyleEnhancement}\nApply these enhancements while maintaining base style.\n`
     : "";
 
   const renderTextBlock = style === 'Сторителлинг'
     ? `Render this text IN the image design:\nTitle: '${title}'\nBody text: '${content || ""}'`
-    : `RENDER THIS TEXT IN THE IMAGE:\nTITLE: '${title}'\nBODY: '${content || ""}'\nTypography: bold, high contrast, perfectly legible on mobile.`;
+    : `RENDER THIS TEXT IN THE IMAGE:\nTITLE: '${title}'\nBODY: '${content || ""}'\nTypography: bold, high contrast, perfectly legible on mobile.\nALL TEXT MUST BE IN RUSSIAN ONLY.`;
 
-  // FIX 1 — формат 4:5 в системном промте
   const prompt = `CRITICAL: Vertical format 1080x1350px (4:5 ratio). NOT square. NOT 1080x1080px. NEVER square.
 
 MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
+
+LANGUAGE RULE — CRITICAL FOR ALL STYLES:
+ALL text rendered in the image must be in Russian only.
+This includes: headlines, body text, labels, diagram captions, infographic elements, button text, badges, icons with text, chart labels, arrows with text.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
+
 ${characterBlock}${photoIntegrationBlock}${styleEnhancementBlock}
 Instagram carousel slide ${slideNumber} of 7.
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
@@ -666,8 +649,7 @@ ${styleDesc}
 
 CRITICAL RULE FOR 3D ELEMENTS:
 - NEVER place 3D objects near or behind the expert's head.
-- 3D elements must be placed to the LEFT or RIGHT side of the frame, at chest/hand level or below — never at head level.
-- Elements should appear to rest on a surface OR float beside the expert's hands, not behind her.
+- 3D elements must be placed to the LEFT or RIGHT side of the frame, at chest/hand level or below.
 - Keep expert's head and face completely clean — no glows, halos, or objects overlapping the face area.`;
 
   const parts: any[] = [];
@@ -692,8 +674,6 @@ CRITICAL RULE FOR 3D ELEMENTS:
         contents: [{ role: "user", parts }],
         generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
-          // FIX 1 — aspectRatio 4:5
-          aspectRatio: "4:5",
         },
       }),
     }
@@ -850,7 +830,6 @@ serve(async (req) => {
         generateSeoMeta(userText),
       ]);
 
-      // FIX 6 — generate auto style enhancement (fire alongside texts)
       let autoStyleEnhancement = "";
       try {
         autoStyleEnhancement = await generateAutoStyleEnhancement(userText, style || "Профессиональный");
