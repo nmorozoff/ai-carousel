@@ -52,7 +52,8 @@ async function generateInBatches(
   style: string,
   userPhotos: string[],
   characterDescription: string | undefined,
-  callbacks: GenerationCallbacks
+  callbacks: GenerationCallbacks,
+  autoStyleEnhancement?: string
 ): Promise<{ slideNumber: number; title: string; content: string; imageBase64: string; mimeType: string }[]> {
   const results: any[] = [];
 
@@ -72,6 +73,7 @@ async function generateInBatches(
             style,
             userPhotos,
             characterDescription,
+            autoStyleEnhancement,
           });
           callbacks.onSlideReady(item.slideNumber);
           return {
@@ -124,6 +126,7 @@ export async function orchestrateGeneration(
   const slideTexts: SlideText[] = textData.slides;
   const caption: string = textData.caption || "";
   const seoMeta = textData.seoMeta || { title: "", keywords: "" };
+  const autoStyleEnhancement: string = textData.autoStyleEnhancement || "";
 
   // Step 2: Generate images in batches of 3
   const isStorytelling = style === "Сторителлинг";
@@ -139,6 +142,7 @@ export async function orchestrateGeneration(
       content: slideTexts[0].content,
       style,
       userPhotos,
+      autoStyleEnhancement,
     });
     callbacks.onSlideReady(1);
 
@@ -161,7 +165,7 @@ export async function orchestrateGeneration(
     }));
 
     const remainingSlides = await generateInBatches(
-      remainingItems, 3, token, style, userPhotos, characterDescription, callbacks
+      remainingItems, 3, token, style, userPhotos, characterDescription, callbacks, autoStyleEnhancement
     );
 
     allSlides = [
@@ -183,7 +187,7 @@ export async function orchestrateGeneration(
     }));
 
     allSlides = await generateInBatches(
-      items, 3, token, style, userPhotos, undefined, callbacks
+      items, 3, token, style, userPhotos, undefined, callbacks, autoStyleEnhancement
     );
   }
 

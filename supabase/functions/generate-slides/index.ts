@@ -66,65 +66,42 @@ async function authenticateAndCheckSubscription(req: Request) {
 }
 
 // ─── MODE: text ───
-// Generates slide texts, caption, and SEO meta. Lightweight, fast.
+// FIX 5 — полностью новый промт текстов слайдов
 
 async function generateSlideContent(userText: string, funnel: string, style: string): Promise<{ title: string; content: string }[]> {
   const funnelText = funnel || "подбери сам по теме";
-  const systemPrompt = `Ты ассистент, который создаёт вирусные посты-карусели для экспертов мягких ниш (психологи, коучи, нумерологи).
+  const systemPrompt = `Ты помогаешь создавать вирусные карусели для Instagram для экспертов мягких ниш (психологи, коучи, нумерологи).
 
-Стиль оформления: ${style}
-
-Создай ровно 7 слайдов на основе текста пользователя.
-
-ТЕКСТ ПОЛЬЗОВАТЕЛЯ:
+ИСХОДНЫЙ ТЕКСТ ЭКСПЕРТА:
 ${userText}
 
 ВОРОНКА (последний слайд):
 ${funnelText}
 
-═══════════════════════════════════
-СТРУКТУРА 7 СЛАЙДОВ:
-═══════════════════════════════════
+Создай 7 слайдов строго по структуре:
 
-СЛАЙД 1 — ОБЛОЖКА (крючок):
-- Заголовок: 2-3 строки, до 80 символов.
-  Вызывает реакцию: "это про меня", "надо глянуть", "что за фигня?"
-  Содержит крючок, вопрос, обещание или контраст.
-- Подзаголовок: 1-2 строки, пояснение или интрига.
+СЛАЙД 1 — ОБЛОЖКА:
+Заголовок: цепляющий, с болью или интригой, макс 7 слов.
+Подзаголовок: 1-2 строки, интрига или пояснение.
+В поле content добавь строку: ЛИСТАЙ →
 
-СЛАЙДЫ 2-6 — КОНТЕНТ (каждый слайд = 1 мысль):
-- Заголовок: 1 строка, ёмкий, с глаголом действия.
-  Может быть вопросом, провокацией, парадоксом.
-- Текст: Полные предложения с объяснениями.
-  Живой, разговорный, с дыханием и эмоцией.
-  Конкретные примеры, цифры, детали.
-  Рассказывай КАК и ПОЧЕМУ, а не только ЧТО.
-  Каждый слайд заканчивается так, чтобы
-  хотелось листать дальше (эффект скользкой горки).
+СЛАЙДЫ 2-6 — КОНТЕНТ:
+Заголовок: 1 строка, глагол действия или вопрос.
+Текст: полные предложения, живой разговорный язык.
+Конкретные примеры и детали.
+Каждый слайд заканчивается так, чтобы хотелось листать.
+Макс 120 символов в title, макс 300 символов в content.
 
 СЛАЙД 7 — ПРИЗЫВ:
-- Используй точно эту воронку: ${funnelText}
-- Коротко, конкретно, без давления.
+Используй воронку: ${funnelText}
+Коротко, конкретно, без давления.
+Макс 120 символов в title, макс 200 символов в content.
 
-═══════════════════════════════════
 ЗАПРЕЩЕНО:
-═══════════════════════════════════
-- Списки из коротких фраз без объяснений
-- Телеграфный стиль ("• создаю базу • получаю результат")
-- Сухие перечисления без раскрытия
-- Обрывочные фразы вместо полных мыслей
-- Банальности типа "будьте позитивными"
-- Канцелярит и сложные термины
-- Слово "эксперт", "контент", "полезно"
-
-═══════════════════════════════════
-ОБЯЗАТЕЛЬНО:
-═══════════════════════════════════
-- 1 слайд = 1 законченная мысль
-- Каждый слайд мотивирует листать дальше
-- Живые примеры и визуальные образы
-- Текст читается с телефона — коротко, но полноценно
-- Сохраняй цифры, кейсы и детали из исходного текста
+- Списки и буллеты внутри текста
+- Слова: эксперт, контент, полезно, уникальный
+- Обрывочные фразы без полных мыслей
+- Банальности
 
 Верни строго JSON без markdown:
 [
@@ -145,7 +122,7 @@ ${funnelText}
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nТекст пользователя:\n${userText}` }] }],
+        contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
       }),
     }
@@ -255,49 +232,88 @@ async function generateSeoMeta(userText: string): Promise<{ title: string; keywo
   }
 }
 
+// ─── FIX 6 — Auto style enhancement ───
+
+async function generateAutoStyleEnhancement(
+  userText: string,
+  baseStyle: string
+): Promise<string> {
+  try {
+    const prompt = `Based on this carousel topic: "${userText.substring(0, 200)}"
+And base visual style: "${baseStyle}"
+
+Generate a SHORT visual enhancement (max 100 words, English only):
+- 2 specific font names from Google Fonts
+- 3 exact hex color codes fitting this topic
+- 1 key visual metaphor or element for this niche
+- 1 sentence describing the emotional mood
+
+Return ONLY the enhancement text. No headers. No explanations.`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 200 },
+        }),
+      }
+    );
+
+    if (!response.ok) return "";
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
 // ─── MODE: image ───
-// Generates ONE slide image. Called per-slide from frontend.
 
 function getStyleGuide(style: string): string {
   const styles: Record<string, string> = {
-    'Профессиональный': `
-CRITICAL RULE — PERSON IN SLIDES:
-Use ONLY the photo uploaded by the user.
-Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty.
+    // FIX 2 — Профессиональный полностью заменён
+    'Профессиональный': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
-FORMAT: 1080x1350px vertical (4:5). NOT square.
+PRIORITY ORDER — follow strictly:
+1) Preserve person's face and appearance EXACTLY
+2) Natural integration in office scene
+3) Interior details
 
 VISUAL STYLE: Professional Psychology Office.
 SCENE: Real cozy psychology office interior.
-Warm neutral tones — beige, ivory, sage green.
+Warm neutral tones — beige, ivory, sage green, soft terracotta.
 Natural light from window.
 Room elements: armchair, bookshelf with books,
 indoor plants, soft lamp, wooden desk, notepad.
 Atmosphere: safe, calm, professional warmth.
 
-PERSON: She is NATURALLY IN THE SCENE —
-not a cutout. Photographed IN this office.
-Warm natural light falls on her.
+PERSON: Use ONLY the photo uploaded by the user.
+Preserve exactly: face, hair, skin, appearance.
+Person is NATURALLY IN THE SCENE — not a cutout.
+Photographed IN this office, not pasted onto background.
+Warm natural light falls on her matching room lighting.
+Her feet touch the floor.
+Her shadow falls naturally on the background.
+Light source from window on the left side.
+Her clothing edges blend naturally with surroundings.
 
-POSES — vary per slide:
-Slide 1: sitting in armchair, notepad in lap
-Slide 2: standing by window, soft light behind
-Slide 3: sitting at desk with laptop, looking up
-Slide 4: standing near bookshelf, arms relaxed
-Slide 5: sitting in armchair, tablet in hands
-Slide 6: sitting at desk, pen in hand
-Slide 7: warm smile, inviting gesture
+POSES — randomly select one per slide from this list:
+- Sitting in armchair, notepad in lap, warm smile
+- Standing by window, soft light behind, looking at camera
+- Sitting at desk with laptop, looking up naturally
+- Standing near bookshelf, arms relaxed, thoughtful
+- Sitting in armchair, tablet in hands
+- Sitting at desk, pen in hand, writing
+- Warm inviting smile, open gesture toward camera
 
-TEXT: top area of image, white rounded card.
-Headlines: deep burgundy (#8B1A1A), bold serif.
-Accent: warm gold (#C9A84C).
-Thin gold geometric lines in corners.
-NO plain gradient background.
-NO yellow circles or blobs.
-
-FORMAT: 1080x1350px vertical (4:5 ratio).
-NOT square. NOT 1080x1080px.
+TEXT: white rounded card at top of image.
+Headlines: deep navy (#1B2A4A), bold.
+Accent text: warm terracotta (#C0614A).
+Thin warm-toned geometric lines in corners.
+NO plain gradient background. NO yellow blobs. NO circles.
 
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
@@ -314,7 +330,8 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    'Светлый': `
+    'Светлый': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
@@ -340,9 +357,6 @@ Text placement: LEFT 45% of image, stacked vertically, lots of breathing room be
 Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic. Clean, intentional.
 Person and text overlap slightly at shoulder zone.
 
-FORMAT: 1080x1350px vertical (4:5 ratio).
-NOT square. NOT 1080x1080px.
-
 PHOTOGRAPHY PARAMETERS:
 Camera: Sony A7R IV
 Lens: 85mm f/1.4 prime lens
@@ -358,7 +372,8 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    'Инфографика с экспертом': `
+    'Инфографика с экспертом': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
@@ -396,7 +411,8 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    'Тёмный': `
+    'Тёмный': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Do NOT generate, replace or modify the person.
@@ -445,7 +461,9 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    'Персонаж': `
+    // FIX 3 — Персонаж: новый фон, FORMAT в начале, CHARACTER CONSISTENCY в конце
+    'Персонаж': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
 CRITICAL — CHARACTER DESCRIPTION (fix once):
 Before generating any slides, create this exact character and use her on ALL 7 slides:
 Woman, Pixar/Disney 3D style.
@@ -463,10 +481,8 @@ DO NOT make her younger or change appearance.
 DO NOT remove glasses.
 DO NOT change hair color to brown.
 
-FORMAT: 1080x1350px vertical (4:5). NOT square.
-
-BACKGROUND: pure white (#FFFFFF) only.
-NO gradients. NO colors. White only.
+Background: warm cream to white gradient ONLY (#FFF8F0 → #FFFFFF).
+NO mint, NO lavender, NO purple, NO blue, NO teal. Ever.
 
 TYPOGRAPHY — CRITICAL:
 Same font on ALL 7 slides.
@@ -499,10 +515,16 @@ Mood: editorial photography, magazine quality
 
 RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
-natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
+natural skin texture, film grain at 15% opacity, subtle vignette at edges
 
-    'Схемы & Инфографика': `
-FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+CHARACTER CONSISTENCY:
+Keep clothing COLOR varied per slide but style identical.
+Same hair, same face, same proportions throughout.
+Base all slides on the character established in slide 1.`,
+
+    // FIX 4 — Схемы & Инфографика: убран pale blue
+    'Схемы & Инфографика': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
 VISUAL STYLE: Clean Data Infographic. NO person needed.
 COLOR VARIATION RULE:
 Background: clean light tone, vary per slide:
@@ -532,7 +554,8 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    'Сторителлинг': `
+    'Сторителлинг': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
 Generate ONE hyperrealistic photographic image (4:5 ratio, 1080x1350px).
 Style: Cinematic photography, Sony A7R, 35mm f/2.0.
 Real people, real locations. NOT illustration, NOT cartoon.
@@ -571,13 +594,36 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
   return styles[style] || styles['Профессиональный'];
 }
 
+// FIX 7 — Photo integration block for specific styles
+function getPhotoIntegrationBlock(style: string, hasPhotos: boolean): string {
+  if (!hasPhotos) return "";
+  const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж'];
+  if (!photoStyles.includes(style)) return "";
+  return `
+PHOTO INTEGRATION — CRITICAL:
+The uploaded photos show the expert/author.
+Naturally integrate her into the scene.
+She physically EXISTS in this environment.
+Matching lighting, shadows, color temperature.
+Her feet touch the floor.
+Her shadow falls naturally on the background.
+Light source direction matches the scene.
+Her clothing edges blend naturally with surroundings.
+DO NOT cut-and-paste. DO NOT add frame or border.
+Preserve exactly: face, hair, skin tone, appearance.
+She was photographed IN this scene, not added later.
+CONSISTENCY: Same face and hair across ALL 7 slides.
+`;
+}
+
 async function generateOneSlideImage(
   slideNumber: number,
   title: string,
   content: string,
   style: string,
   userPhotos: string[],
-  characterDescription?: string
+  characterDescription?: string,
+  autoStyleEnhancement?: string
 ): Promise<{ imageBase64: string; mimeType: string }> {
   const isLastSlide = slideNumber === 7;
   const isFirstSlide = slideNumber === 1;
@@ -590,18 +636,27 @@ async function generateOneSlideImage(
     ? `\nMAIN CHARACTER CONSISTENCY:\nUse exactly this person in this slide:\n${characterDescription}\nSame face, same hair, same appearance.\nDo NOT change or replace this character.\n`
     : "";
 
-  // For storytelling, render text in image differently
+  const photoIntegrationBlock = getPhotoIntegrationBlock(style, hasPhotos && needsPhoto);
+
+  // FIX 6 — auto style enhancement block
+  const styleEnhancementBlock = autoStyleEnhancement
+    ? `\nTOPIC-SPECIFIC STYLE ENHANCEMENT:\n${autoStyleEnhancement}\nApply these enhancements while maintaining base style.\n`
+    : "";
+
   const renderTextBlock = style === 'Сторителлинг'
     ? `Render this text IN the image design:\nTitle: '${title}'\nBody text: '${content || ""}'`
     : `RENDER THIS TEXT IN THE IMAGE:\nTITLE: '${title}'\nBODY: '${content || ""}'\nTypography: bold, high contrast, perfectly legible on mobile.`;
 
-  const prompt = `MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
-${characterBlock}
+  // FIX 1 — формат 4:5 в системном промте
+  const prompt = `CRITICAL: Vertical format 1080x1350px (4:5 ratio). NOT square. NOT 1080x1080px. NEVER square.
+
+MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
+${characterBlock}${photoIntegrationBlock}${styleEnhancementBlock}
 Instagram carousel slide ${slideNumber} of 7.
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
 ${isLastSlide ? "This is the CTA slide — make it action-oriented with clear call to action." : ""}
 ${hasPhotos && needsPhoto ? "Include a person in the slide that matches the uploaded reference photo." : ""}
-Vertical format 1080x1350px (4:5 ratio). NOT square. Professional social media post, high quality, modern design.
+Professional social media post, high quality, modern design.
 Do NOT add any borders or watermarks.
 
 ${renderTextBlock}
@@ -635,7 +690,11 @@ CRITICAL RULE FOR 3D ELEMENTS:
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
-        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"],
+          // FIX 1 — aspectRatio 4:5
+          aspectRatio: "4:5",
+        },
       }),
     }
   );
@@ -791,24 +850,34 @@ serve(async (req) => {
         generateSeoMeta(userText),
       ]);
 
+      // FIX 6 — generate auto style enhancement (fire alongside texts)
+      let autoStyleEnhancement = "";
+      try {
+        autoStyleEnhancement = await generateAutoStyleEnhancement(userText, style || "Профессиональный");
+      } catch (e) {
+        console.warn("Auto style enhancement failed:", e);
+      }
+
       return new Response(JSON.stringify({
         success: true,
         slides: slideContents.slice(0, 7),
         caption,
         seoMeta,
+        autoStyleEnhancement,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ─── MODE: image ───
     if (mode === "image") {
-      const { slideNumber, title, content, style, userPhotos, characterDescription } = body;
+      const { slideNumber, title, content, style, userPhotos, characterDescription, autoStyleEnhancement } = body;
       console.log(`[image] Generating slide ${slideNumber} image`);
 
       const imageData = await generateOneSlideImage(
         slideNumber, title, content || "",
         style || "Профессиональный",
         userPhotos || [],
-        characterDescription
+        characterDescription,
+        autoStyleEnhancement
       );
 
       return new Response(JSON.stringify({
