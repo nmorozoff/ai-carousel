@@ -13,21 +13,55 @@ const AI_CLEANER_API_KEY = Deno.env.get("AI_CLEANER_API_KEY");
 // ─── Helpers ───
 
 function parseJsonResponse(rawText: string): any {
-  const cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  let cleaned = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+  // Remove control chars except newline/tab
+  cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
+  // Try direct parse first
   try {
     return JSON.parse(cleaned);
-  } catch {
-    const match = cleaned.match(/[\[\{][\s\S]*[\]\}]/);
-    if (match) {
-      try { return JSON.parse(match[0]); } catch {
-        const fixed = match[0].replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\t' ? ch : "");
-        try { return JSON.parse(fixed); } catch {
-          throw new Error(`Failed to parse Gemini response: ${cleaned.substring(0, 200)}`);
+  } catch { /* continue */ }
+
+  // Extract JSON boundaries
+  const jsonStart = cleaned.search(/[\[\{]/);
+  if (jsonStart === -1) throw new Error(`No JSON found in Gemini response: ${cleaned.substring(0, 200)}`);
+
+  let jsonStr = cleaned.substring(jsonStart);
+
+  // Fix trailing commas
+  jsonStr = jsonStr.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+
+  // Try parsing as-is
+  try { return JSON.parse(jsonStr); } catch { /* continue */ }
+
+  // Truncated array salvage: find all complete objects in the array
+  if (jsonStr.startsWith("[")) {
+    const objects: any[] = [];
+    const objRegex = /\{[^{}]*\}/g;
+    let m;
+    while ((m = objRegex.exec(jsonStr)) !== null) {
+      try {
+        const obj = JSON.parse(m[0]);
+        if (obj.title !== undefined && obj.content !== undefined) {
+          objects.push(obj);
         }
-      }
+      } catch { /* skip incomplete */ }
     }
-    throw new Error(`Invalid JSON from Gemini: ${cleaned.substring(0, 200)}`);
+    if (objects.length > 0) {
+      console.warn(`Salvaged ${objects.length} complete slide objects from truncated Gemini response`);
+      return objects;
+    }
   }
+
+  // Truncated object salvage
+  if (jsonStr.startsWith("{")) {
+    // Try closing the object
+    try { return JSON.parse(jsonStr + '"}'); } catch { /* */ }
+    try { return JSON.parse(jsonStr + "}"); } catch { /* */ }
+  }
+
+  throw new Error(`Failed to parse Gemini response: ${cleaned.substring(0, 200)}`);
 }
 
 // ─── Auth helper ───
@@ -122,7 +156,7 @@ ${funnelText}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
       }),
     }
   );
@@ -134,7 +168,38 @@ ${funnelText}
 
   const data = await response.json();
   const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  return parseJsonResponse(rawText);
+  const finishReason = data.candidates?.[0]?.finishReason || "";
+  const slides = parseJsonResponse(rawText);
+
+  // If truncated and we got fewer than 7 slides, retry once
+  if (Array.isArray(slides) && slides.length < 7 && (finishReason === "MAX_TOKENS" || slides.length < 5)) {
+    console.warn(`Got only ${slides.length} slides (finishReason: ${finishReason}), retrying...`);
+    try {
+      const retryResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+          }),
+        }
+      );
+      if (retryResponse.ok) {
+        const retryData = await retryResponse.json();
+        const retryText = retryData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const retrySlides = parseJsonResponse(retryText);
+        if (Array.isArray(retrySlides) && retrySlides.length > slides.length) {
+          return retrySlides;
+        }
+      }
+    } catch (retryErr) {
+      console.warn("Retry failed, using salvaged slides:", retryErr);
+    }
+  }
+
+  return slides;
 }
 
 async function generateCaption(userText: string, funnel: string): Promise<string> {
