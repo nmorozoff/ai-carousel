@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Download, FileArchive, User, CalendarDays, Copy, Check, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, Download, FileArchive, User, CalendarDays, Copy, Check, FileText, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
-import { orchestrateGeneration } from "@/lib/generation-orchestrator";
+import { orchestrateGeneration, regenerateMissingSlides } from "@/lib/generation-orchestrator";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import professionalSample1 from "@/assets/samples/professional-1.jpeg";
@@ -104,6 +104,7 @@ const Dashboard = () => {
   const [cta, setCta] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState("");
   const [results, setResults] = useState<SlideResult[] | null>(null);
   const [caption, setCaption] = useState<string | null>(null);
@@ -190,6 +191,43 @@ const Dashboard = () => {
       toast.error(err.message || "Произошла ошибка при генерации");
     } finally {
       setIsGenerating(false);
+      setGenerationStatus("");
+    }
+  };
+
+  const missingCount = results?.filter(s => !s.imageBase64).length || 0;
+
+  const handleRegenerateMissing = async () => {
+    if (!results || missingCount === 0) return;
+    setIsRegenerating(true);
+    setGenerationStatus("Повторная генерация...");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Необходима авторизация");
+
+      const updated = await regenerateMissingSlides(
+        token,
+        results,
+        styleIdToName[selectedStyle] || "Профессиональный",
+        userPhotos.map(p => { const m = p.match(/^data:[^;]+;base64,(.+)$/); return m ? m[1] : p; }),
+        {
+          onStatus: (status) => setGenerationStatus(status),
+          onSlideReady: (num) => setGenerationStatus(`Слайд ${num} готов ✓`),
+        }
+      );
+      setResults(updated);
+      const stillMissing = updated.filter(s => !s.imageBase64).length;
+      if (stillMissing === 0) {
+        toast.success("Все слайды успешно сгенерированы!");
+      } else {
+        toast.warning(`${stillMissing} слайдов всё ещё не удалось сгенерировать`);
+      }
+    } catch (err: any) {
+      console.error("Regeneration error:", err);
+      toast.error(err.message || "Ошибка при повторной генерации");
+    } finally {
+      setIsRegenerating(false);
       setGenerationStatus("");
     }
   };
@@ -488,27 +526,53 @@ const Dashboard = () => {
               {/* Slides tab */}
               {activeTab === "slides" && results && results.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <h2 className="font-heading font-semibold text-base">Результат: {results.length} слайдов</h2>
-                    <Button variant="outline" size="sm" className="gap-2" onClick={downloadAllZip}>
-                      <FileArchive className="w-4 h-4" />
-                      Скачать ZIP
-                    </Button>
+                    <div className="flex gap-2">
+                      {missingCount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
+                          onClick={handleRegenerateMissing}
+                          disabled={isRegenerating}
+                        >
+                          {isRegenerating ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                          Догенерировать ({missingCount})
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" className="gap-2" onClick={downloadAllZip}>
+                        <FileArchive className="w-4 h-4" />
+                        Скачать ZIP
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {results.map((slide) => (
-                      <div key={slide.slideNumber} className="relative group rounded-xl overflow-hidden border border-border/30">
-                        <img
-                          src={`data:${slide.mimeType};base64,${slide.imageBase64}`}
-                          alt={`Слайд ${slide.slideNumber}`}
-                          className="w-full aspect-[4/5] object-cover"
-                        />
-                        <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button size="sm" variant="secondary" className="gap-2" onClick={() => downloadSlide(slide)}>
-                            <Download className="w-4 h-4" />
-                            Скачать
-                          </Button>
-                        </div>
+                      <div key={slide.slideNumber} className={`relative group rounded-xl overflow-hidden border ${slide.imageBase64 ? 'border-border/30' : 'border-destructive/50 bg-destructive/5'}`}>
+                        {slide.imageBase64 ? (
+                          <img
+                            src={`data:${slide.mimeType};base64,${slide.imageBase64}`}
+                            alt={`Слайд ${slide.slideNumber}`}
+                            className="w-full aspect-[4/5] object-cover"
+                          />
+                        ) : (
+                          <div className="w-full aspect-[4/5] flex items-center justify-center text-muted-foreground text-sm">
+                            Не удалось сгенерировать
+                          </div>
+                        )}
+                        {slide.imageBase64 && (
+                          <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button size="sm" variant="secondary" className="gap-2" onClick={() => downloadSlide(slide)}>
+                              <Download className="w-4 h-4" />
+                              Скачать
+                            </Button>
+                          </div>
+                        )}
                         <div className="absolute top-2 left-2">
                           <span className="text-xs font-heading font-bold bg-background/70 rounded-md px-2 py-1">
                             {slide.slideNumber}/7

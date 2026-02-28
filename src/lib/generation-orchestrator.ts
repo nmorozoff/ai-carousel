@@ -224,6 +224,38 @@ export async function orchestrateGeneration(
   return { slides: cleanedSlides, caption };
 }
 
+export async function regenerateMissingSlides(
+  token: string,
+  slides: SlideResult[],
+  style: string,
+  userPhotos: string[],
+  callbacks: GenerationCallbacks
+): Promise<SlideResult[]> {
+  const missing = slides.filter(s => !s.imageBase64);
+  if (missing.length === 0) return slides;
+
+  callbacks.onStatus(`Повторная генерация ${missing.length} слайдов...`);
+
+  const items = missing.map(s => ({
+    slideNumber: s.slideNumber,
+    title: s.title,
+    content: s.content,
+  }));
+
+  const regenerated = await generateInBatches(
+    items, 3, token, style, userPhotos, undefined, callbacks
+  );
+
+  const regenMap = new Map(regenerated.map(s => [s.slideNumber, s]));
+  return slides.map(s => {
+    if (!s.imageBase64 && regenMap.has(s.slideNumber)) {
+      const regen = regenMap.get(s.slideNumber)!;
+      if (regen.imageBase64) return regen;
+    }
+    return s;
+  });
+}
+
 async function cleanInBatches(
   slides: SlideResult[],
   batchSize: number,
