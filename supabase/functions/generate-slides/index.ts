@@ -492,7 +492,7 @@ Appearance — use ONLY the uploaded reference photo to determine:
 - Hair color, length and style — copy exactly from photo
 - Glasses — only if visible in photo
 - Age — match the person in photo
-- Skin tone — match exactly
+- Skin tone — match exactl
 - Style: professional blazer matching her coloring
 DO NOT invent appearance. Copy from photo.
 THIS EXACT CHARACTER on every single slide.
@@ -537,14 +537,33 @@ RENDER QUALITY:
 
     'Схемы & Инфографика': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
-VISUAL STYLE: Clean Data Infographic. NO person needed.
-Background: clean light tone, vary per slide: white / off-white / light gray only.
-NO pale blue, NO mint, NO teal backgrounds.
-Accent: professional tone from navy / teal / slate / deep blue family.
-Warning elements: coral / red-orange / salmon family.
-Typography: Bold modern Montserrat-style sans-serif.
-Visual elements: Clean diagrams, arrows, comparison tables, numbered steps with icons, progress bars, before/after splits.
-Atmosphere: Educational, authoritative, consulting quality.
+VISUAL STYLE: Dark Premium Infographic.
+
+BACKGROUND: Deep dark charcoal #1A1A2E or #12121F.
+Subtle dark texture — carbon fiber or dark grid pattern at 5% opacity.
+NO light backgrounds. NO white. NO gray. Ever.
+
+ACCENT COLOR: Vibrant orange #FF6B00 — ONE color only.
+Use for: icons, highlighted text, lines, borders, buttons, badges.
+NO blue, NO green, NO mixed accents. Only orange.
+
+TYPOGRAPHY:
+Headlines: Bold condensed sans-serif (Bebas Neue style), ALL CAPS, white color.
+Each headline starts with a relevant emoji icon.
+Body text: Regular weight, white #FFFFFF, easy to read.
+Key words in body: highlighted in orange #FF6B00, bold.
+
+3D ELEMENTS: Photorealistic 3D objects with depth, shadows and neon glow.
+Objects must look premium rendered — NOT flat icons, NOT clipart.
+Examples: glowing warning triangle, 3D rocket, 3D shield, 3D calendar.
+Neon orange glow effect on key 3D objects.
+
+INFOGRAPHIC ELEMENTS:
+Clean flowcharts with orange arrows.
+Rounded dark cards #2A2A3E for content blocks.
+Orange checkmarks for positive items.
+Red prohibition signs for negative items.
+Orange circle numbers for steps.
 
 LANGUAGE RULE — CRITICAL:
 ALL text rendered in the image must be in Russian only.
@@ -554,7 +573,7 @@ ZERO English words anywhere on any slide.
 If a concept has no Russian equivalent — transliterate it into Russian.
 
 RENDER QUALITY:
-8K resolution, no AI artifacts, clean crisp edges`,
+8K resolution, no AI artifacts, crisp edges, premium dark theme, neon glow effects.`,
 
     'Сторителлинг': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
