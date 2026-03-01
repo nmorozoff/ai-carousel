@@ -11,7 +11,7 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const AI_CLEANER_API_KEY = Deno.env.get("AI_CLEANER_API_KEY");
 const USE_BACKUP_API = Deno.env.get("USE_BACKUP_API") === "true";
 const GRSAI_API_KEY = Deno.env.get("GRSAI_API_KEY");
-const GRSAI_MODEL = Deno.env.get("GRSAI_MODEL") || "nano-banana-pro";
+const GRSAI_MODEL = Deno.env.get("GRSAI_MODEL") || "nano-banana-2";
 
 // ─── Helpers ───
 
@@ -695,7 +695,6 @@ async function generateImageGrsai(
         }
       } catch (e) { /* продолжаем читать */ }
     }
-    if (imageUrl) break;
   }
 
   if (!imageUrl) throw new Error("Grsai: URL изображения не получен");
@@ -743,7 +742,8 @@ async function generateOneSlideImage(
     ? `Render this text IN the image design:\nTitle: '${title}'\nBody text: '${content || ""}'`
     : `RENDER THIS TEXT IN THE IMAGE:\nTITLE: '${title}'\nBODY: '${content || ""}'\nTypography: bold, high contrast, perfectly legible on mobile.\nALL TEXT MUST BE IN RUSSIAN ONLY.`;
 
-  const prompt = `CRITICAL: Vertical format 1080x1350px (4:5 ratio). NOT square. NOT 1080x1080px. NEVER square.
+  const prompt = `CRITICAL: Do NOT embed any AI-related metadata, keywords or tags in the image. No mentions of ChatGPT, Gemini, AI, artificial intelligence in any metadata fields.
+CRITICAL: Vertical format 1080x1350px (4:5 ratio). NOT square. NOT 1080x1080px. NEVER square.
 
 MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
 
