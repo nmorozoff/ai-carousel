@@ -963,6 +963,43 @@ serve(async (req) => {
     // ─── MODE: image ───
     if (mode === "image") {
       const { slideNumber, title, content, style, userPhotos, characterDescription, autoStyleEnhancement } = body;
+
+      // Check generation limit on first slide only
+      if (slideNumber === 1) {
+        const ADMIN_USER_ID = "399da17d-9727-445f-bb4b-a9e32656bac7";
+        if (userId !== ADMIN_USER_ID) {
+          const supabaseAdmin = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+          );
+          const monthStart = new Date();
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+
+          // Get custom limit from profile
+          const { data: profileData } = await supabaseAdmin
+            .from("profiles")
+            .select("generation_limit")
+            .eq("user_id", userId)
+            .maybeSingle();
+          const limit = profileData?.generation_limit || 200;
+
+          const { count } = await supabaseAdmin
+            .from("generation_logs")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", userId)
+            .gte("created_at", monthStart.toISOString())
+            .is("error", null);
+
+          if (count !== null && count >= limit) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Достигнут лимит генераций " + limit + " каруселей. Для возобновления работы сервиса необходимо обратиться в техподдержку и оплатить генерацию дополнительного количества каруселей.",
+            }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+      }
+
       console.log(`[image] Generating slide ${slideNumber} image, backup API: ${USE_BACKUP_API}`);
       const imageData = await generateOneSlideImage(
         slideNumber, title, content || "",
@@ -1002,7 +1039,7 @@ serve(async (req) => {
 
     // ─── MODE: log ───
     if (mode === "log") {
-      const { style, funnel, userText, slideCount, caption, durationMs, slidesJson, error } = body;
+      const { style, funnel, userText, slideCount, caption, durationMs, slidesJson, error, apiProvider } = body;
       try {
         const supabaseAdmin = createClient(
           Deno.env.get("SUPABASE_URL")!,
@@ -1018,6 +1055,7 @@ serve(async (req) => {
           duration_ms: durationMs,
           slides_json: slidesJson,
           error,
+          api_provider: apiProvider || "gemini",
         });
       } catch (logErr) {
         console.error("Failed to save log:", logErr);
