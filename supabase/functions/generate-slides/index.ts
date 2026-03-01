@@ -660,44 +660,28 @@ async function generateImageGrsai(
   if (userPhotos && userPhotos.length > 0) {
     requestBody.urls = userPhotos
       .slice(0, 3)
-      .map((p: string) => `data:image/jpeg;base64,${p}`);
+      .map((p: string) => "data:image/jpeg;base64," + p);
   }
 
   const response = await fetch("https://grsaiapi.com/v1/draw/nano-banana", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${GRSAI_API_KEY}`,
+      "Authorization": "Bearer " + GRSAI_API_KEY,
     },
     body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Grsai API error ${response.status}: ${err}`);
-  }
-
-const reader = response.body?.getReader();
-  const decoder = new TextDecoder();
-  let imageUrl: string | nconst response = await fetch("https://grsaiapi.com/v1/draw/nano-banana", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${GRSAI_API_KEY}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Grsai API error ${response.status}: ${err}`);
+    throw new Error("Grsai API error " + response.status + ": " + err);
   }
 
   const initData = await response.json();
   const taskId = initData?.data?.id || initData?.id;
-  if (!taskId) throw new Error(`Grsai: не получен task id. Ответ: ${JSON.stringify(initData)}`);
+  if (!taskId) throw new Error("Grsai: не получен task id");
 
-  console.log(`[Grsai] Task created: ${taskId}`);
+  console.log("[Grsai] Task created: " + taskId);
 
   let imageUrl: string | null = null;
   for (let i = 0; i < 120; i++) {
@@ -707,7 +691,7 @@ const reader = response.body?.getReader();
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${GRSAI_API_KEY}`,
+        "Authorization": "Bearer " + GRSAI_API_KEY,
       },
       body: JSON.stringify({ id: taskId }),
     });
@@ -717,56 +701,22 @@ const reader = response.body?.getReader();
     const pollData = await pollResponse.json();
     const result = pollData?.data;
 
-    console.log(`[Grsai] Poll ${i+1}: status=${result?.status}`);
+    console.log("[Grsai] Poll " + (i+1) + ": status=" + result?.status);
 
     if (result?.status === "succeeded" && result?.results?.[0]?.url) {
       imageUrl = result.results[0].url;
       break;
     }
     if (result?.status === "failed") {
-      console.error(`Grsai failed: ${result?.failure_reason}`);
+      console.error("Grsai failed: " + result?.failure_reason);
       break;
     }
   }
 
-  if (!imageUrl) throw new Error("Grsai: URL изображения не получен после polling");
-
-  const imgResponse = await fetch(imageUrl);ull = null;
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader!.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      try {
-        const data = JSON.parse(trimmed);
-        if (data.status === "succeeded" && data.results?.[0]?.url) {
-          imageUrl = data.results[0].url;
-        }
-        if (data.status === "failed") {
-          throw new Error(`Grsai failed: ${data.failure_reason}`);
-        }
-      } catch (e) { /* продолжаем */ }
-    }
-  }
-
-  // обработать остаток буфера
-  if (buffer.trim()) {
-    try {
-      const data = JSON.parse(buffer.trim());
-      if (data.status === "succeeded" && data.results?.[0]?.url) {
-        imageUrl = data.results[0].url;
-      }
-    } catch (e) { /* игнорируем */ }
-  }
+  if (!imageUrl) throw new Error("Grsai: URL не получен после polling");
 
   const imgResponse = await fetch(imageUrl);
-  if (!imgResponse.ok) throw new Error("Не удалось скачать изображение с Grsai");
+  if (!imgResponse.ok) throw new Error("Не удалось скачать изображение");
   const arrayBuffer = await imgResponse.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   let binary = "";
