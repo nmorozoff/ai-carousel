@@ -56,6 +56,21 @@ serve(async (req) => {
     const endpoint = url.searchParams.get("endpoint");
     const targetUserId = url.searchParams.get("userId");
 
+    // ─── SET LIMIT ───
+    if (endpoint === "set-limit" && targetUserId && req.method === "POST") {
+      const reqBody = await req.json();
+      const newLimit = reqBody.limit;
+      // Upsert a custom limit in a simple way: store in profiles or a dedicated field
+      // We'll use a generation_limit column on profiles
+      await supabaseAdmin
+        .from("profiles")
+        .update({ generation_limit: newLimit })
+        .eq("user_id", targetUserId);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── OVERVIEW ───
     if (endpoint === "overview") {
       const [
@@ -69,11 +84,11 @@ serve(async (req) => {
         supabaseAdmin.from("subscriptions").select("*", { count: "exact", head: true })
           .eq("status", "active").gte("expires_at", new Date().toISOString()),
         supabaseAdmin.from("payments").select("amount"),
-        supabaseAdmin.from("user_activity")
-          .select("id, action, details, created_at, profiles(display_name, email)")
+        supabaseAdmin.from("activity_log")
+          .select("id, action, details, created_at, user_id")
           .order("created_at", { ascending: false })
           .limit(50),
-        supabaseAdmin.from("user_activity").select("*", { count: "exact", head: true })
+        supabaseAdmin.from("activity_log").select("*", { count: "exact", head: true })
           .gte("created_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
       ]);
 
@@ -136,23 +151,33 @@ serve(async (req) => {
 
     // ─── USER DETAIL ───
     if (endpoint === "user-detail" && targetUserId) {
+      // Count generations this month
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
       const [
         { data: profile },
         { data: subscriptions },
         { data: payments },
         { data: activity },
         { data: generationLogs },
+        { count: monthGenCount },
       ] = await Promise.all([
-        supabaseAdmin.from("profiles").select("display_name, email, created_at")
+        supabaseAdmin.from("profiles").select("display_name, email, created_at, generation_limit")
           .eq("user_id", targetUserId).maybeSingle(),
         supabaseAdmin.from("subscriptions").select("id, plan, status, starts_at, expires_at")
           .eq("user_id", targetUserId).order("created_at", { ascending: false }),
         supabaseAdmin.from("payments").select("id, amount, plan, created_at")
           .eq("user_id", targetUserId).order("created_at", { ascending: false }),
-        supabaseAdmin.from("user_activity").select("id, action, details, created_at")
+        supabaseAdmin.from("activity_log").select("id, action, details, created_at")
           .eq("user_id", targetUserId).order("created_at", { ascending: false }).limit(50),
         supabaseAdmin.from("generation_logs").select("id, style, created_at, duration_ms, error, api_provider")
           .eq("user_id", targetUserId).order("created_at", { ascending: false }).limit(50),
+        supabaseAdmin.from("generation_logs").select("*", { count: "exact", head: true })
+          .eq("user_id", targetUserId)
+          .gte("created_at", monthStart.toISOString())
+          .is("error", null),
       ]);
 
       return new Response(JSON.stringify({
@@ -161,6 +186,8 @@ serve(async (req) => {
         payments: payments || [],
         activity: activity || [],
         generationLogs: generationLogs || [],
+        monthGenCount: monthGenCount || 0,
+        generationLimit: profile?.generation_limit || 200,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
