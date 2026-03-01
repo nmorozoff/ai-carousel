@@ -653,6 +653,8 @@ async function generateImageGrsai(
     prompt: prompt,
     aspectRatio: "4:5",
     imageSize: "1K",
+    webHook: "-1",
+    shutProgress: true,
   };
 
   if (userPhotos && userPhotos.length > 0) {
@@ -677,7 +679,58 @@ async function generateImageGrsai(
 
 const reader = response.body?.getReader();
   const decoder = new TextDecoder();
+  let imageUrl: string | nconst response = await fetch("https://grsaiapi.com/v1/draw/nano-banana", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GRSAI_API_KEY}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Grsai API error ${response.status}: ${err}`);
+  }
+
+  const initData = await response.json();
+  const taskId = initData?.data?.id || initData?.id;
+  if (!taskId) throw new Error(`Grsai: не получен task id. Ответ: ${JSON.stringify(initData)}`);
+
+  console.log(`[Grsai] Task created: ${taskId}`);
+
   let imageUrl: string | null = null;
+  for (let i = 0; i < 120; i++) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const pollResponse = await fetch("https://grsaiapi.com/v1/draw/result", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GRSAI_API_KEY}`,
+      },
+      body: JSON.stringify({ id: taskId }),
+    });
+
+    if (!pollResponse.ok) continue;
+
+    const pollData = await pollResponse.json();
+    const result = pollData?.data;
+
+    console.log(`[Grsai] Poll ${i+1}: status=${result?.status}`);
+
+    if (result?.status === "succeeded" && result?.results?.[0]?.url) {
+      imageUrl = result.results[0].url;
+      break;
+    }
+    if (result?.status === "failed") {
+      throw new Error(`Grsai failed: ${result?.failure_reason}`);
+    }
+  }
+
+  if (!imageUrl) throw new Error("Grsai: URL изображения не получен после polling");
+
+  const imgResponse = await fetch(imageUrl);ull = null;
   let buffer = "";
 
   while (true) {
