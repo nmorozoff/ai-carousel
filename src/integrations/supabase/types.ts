@@ -40,6 +40,7 @@ export type Database = {
       }
       generation_logs: {
         Row: {
+          api_provider: string | null
           caption: string | null
           created_at: string
           duration_ms: number | null
@@ -53,6 +54,7 @@ export type Database = {
           user_text: string | null
         }
         Insert: {
+          api_provider?: string | null
           caption?: string | null
           created_at?: string
           duration_ms?: number | null
@@ -66,6 +68,7 @@ export type Database = {
           user_text?: string | null
         }
         Update: {
+          api_provider?: string | null
           caption?: string | null
           created_at?: string
           duration_ms?: number | null

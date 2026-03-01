@@ -1,0 +1,1 @@
+ALTER TABLE public.generation_logs ADD COLUMN IF NOT EXISTS api_provider text DEFAULT 'gemini';
