@@ -734,7 +734,8 @@ async function generateOneSlideImage(
 
   const photoIntegrationBlock = getPhotoIntegrationBlock(style, hasPhotos && needsPhoto);
 
-  const styleEnhancementBlock = autoStyleEnhancement
+  const noEnhancementStyles = ['Схемы & Инфографика'];
+  const styleEnhancementBlock = autoStyleEnhancement && !noEnhancementStyles.includes(style)
     ? `\nTOPIC-SPECIFIC STYLE ENHANCEMENT:\n${autoStyleEnhancement}\nApply these enhancements while maintaining base style.\n`
     : "";
 
