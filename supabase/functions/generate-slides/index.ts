@@ -11,7 +11,7 @@ const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const AI_CLEANER_API_KEY = Deno.env.get("AI_CLEANER_API_KEY");
 const USE_BACKUP_API = Deno.env.get("USE_BACKUP_API") === "true";
 const GRSAI_API_KEY = Deno.env.get("GRSAI_API_KEY");
-const GRSAI_MODEL = Deno.env.get("GRSAI_MODEL") || "nano-banana-2";
+const GRSAI_MODEL = Deno.env.get("GRSAI_MODEL") || "nano-banana-pro";
 
 // ─── Helpers ───
 
@@ -366,14 +366,26 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
-Do NOT generate, replace or modify the person.
 Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty.
+Person is NATURALLY IN THE SCENE — not a cutout, not pasted.
+She was photographed IN this location, not added later.
+Matching lighting, shadows, color temperature throughout.
+Her feet touch the floor. Her shadow falls naturally on the background.
+
+SCENE INTEGRATION — vary per slide from this list:
+- Bright Scandinavian living room, white walls, large window, morning light, linen couch
+- Airy home office, white desk, plants, soft daylight from left
+- Light café interior, marble table, coffee cup, warm morning sun
+- Bright studio with white brick wall, wooden floor, natural light
+- Cozy reading nook, white bookshelf, cream armchair, soft lamp
+- Sunlit balcony with plants, city view softly blurred behind
+- Modern kitchen with white counters, flowers in vase, morning atmosphere
+Person interacts naturally with the environment — sitting, leaning, holding something relevant.
 
 VISUAL STYLE: Light Premium Editorial — magazine cover style.
 COLOR VARIATION RULE:
 Each slide — choose ONE background tone from warm light family:
-peach / cream / blush / ivory / warm white.
+peach / cream / blush / ivory / warm white — matching the scene.
 Accent: coral / salmon / terracotta / dusty rose.
 ONE thin coral line along RIGHT edge only.
 Colors: Dark navy (#1A2B4A) main headlines, coral accent, gray body text.
@@ -404,17 +416,28 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
-Do NOT generate, replace or modify the person.
 Preserve exactly: face, hair, skin, appearance.
-If no photo uploaded — leave person area empty.
+Person is NATURALLY IN THE SCENE — not a cutout, not pasted onto white background.
+She physically EXISTS in this environment with matching lighting and shadows.
+
+SCENE INTEGRATION — choose per slide topic:
+- Standing at whiteboard/flipchart in bright office, marker in hand, pointing to diagram
+- Sitting at wooden desk with open notebook, pen, laptop — bright coworking space
+- Standing in front of bookshelf wall, holding open book relevant to topic
+- At glass board with sticky notes, modern office, natural light
+- Sitting in modern armchair, holding tablet showing data
+- Standing near large window in bright office, gesturing toward infographic beside her
+- At standing desk with monitor showing charts, morning office light
+Person's pose matches the slide content — she EXPLAINS, POINTS, SHOWS.
+Warm professional lighting. Real shadows. Real depth.
 
 VISUAL STYLE: Expert Infographic — educational and engaging.
-Background: pure white (#FFFFFF) only.
+Background: real bright office/studio environment, NOT plain white.
 No mint, no green, no teal tones ever.
 Accent: bright tone from blue/green/coral family, vary per slide.
 PERSON: Place expert in CENTER or LEFT of image.
 Expert physically holds or interacts with REAL PROPS relevant to the slide topic.
-INFOGRAPHIC ELEMENTS: diagrams, charts, comparison tables, icons, arrows to the RIGHT of expert.
+INFOGRAPHIC ELEMENTS: diagrams, charts, comparison tables, icons, arrows to the RIGHT of expert — overlaid cleanly on the scene.
 Atmosphere: Educational, trustworthy, friendly expert sharing knowledge.
 
 LANGUAGE RULE — CRITICAL:
@@ -501,7 +524,17 @@ DO NOT make her younger or change appearance.
 DO NOT remove glasses.
 DO NOT change hair color.
 
-Background: warm cream to white gradient ONLY (#FFF8F0 → #FFFFFF).
+BACKGROUND — vary per slide, choose from warm cozy scenes in 3D Pixar style:
+- Cozy home library with warm bookshelves, soft lamp, cream walls
+- Bright Scandinavian office, white desk, plants, large window
+- Warm café corner, wooden table, pastel walls, morning light
+- Cozy living room, cream sofa, bookshelf, candle, warm tones
+- Airy studio with white brick, wooden floor, soft daylight
+- Modern kitchen, white and wood tones, flowers, morning sun
+- Peaceful garden terrace, flowers, soft warm light
+All backgrounds in warm cream / ivory / peach / beige family.
+Character is INSIDE the scene — sitting, standing, naturally placed.
+NO plain gradient backgrounds. NO flat color backgrounds.
 NO mint, NO lavender, NO purple, NO blue, NO teal. Ever.
 
 TYPOGRAPHY — CRITICAL:
