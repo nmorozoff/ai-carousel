@@ -82,6 +82,9 @@ const Admin = () => {
   const [tab, setTab] = useState("overview");
   const [editingLimit, setEditingLimit] = useState<number | null>(null);
   const [savingLimit, setSavingLimit] = useState(false);
+  const [trialDays, setTrialDays] = useState(7);
+  const [givingTrial, setGivingTrial] = useState(false);
+  const [trialSuccess, setTrialSuccess] = useState(false);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -189,6 +192,31 @@ const Admin = () => {
       console.error("Failed to save limit:", err);
     } finally {
       setSavingLimit(false);
+    }
+  };
+
+  const giveTrialAccess = async () => {
+    if (!selectedUserId) return;
+    setGivingTrial(true);
+    setTrialSuccess(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + trialDays);
+      await supabase.from("subscriptions").upsert({
+        user_id: selectedUserId,
+        plan: "trial",
+        status: "active",
+        starts_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      });
+      setTrialSuccess(true);
+      await loadUserDetail(selectedUserId);
+    } catch (err) {
+      console.error("Failed to give trial:", err);
+    } finally {
+      setGivingTrial(false);
     }
   };
 
@@ -505,6 +533,34 @@ const Admin = () => {
                                   ))}
                                 </div>
                               )}
+                            </div>
+
+                            <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+                              <h3 className="text-sm font-heading font-semibold mb-3 flex items-center gap-1.5">
+                                <Zap className="w-4 h-4 text-primary" />
+                                Выдать тестовый доступ
+                              </h3>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-muted-foreground">Дней:</span>
+                                <Input
+                                  type="number"
+                                  className="h-7 w-20 text-xs"
+                                  value={trialDays}
+                                  min={1}
+                                  max={365}
+                                  onChange={(e) => setTrialDays(parseInt(e.target.value) || 7)}
+                                />
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs gap-1"
+                                  onClick={giveTrialAccess}
+                                  disabled={givingTrial}
+                                >
+                                  {givingTrial ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                                  Выдать доступ
+                                </Button>
+                                {trialSuccess && <span className="text-xs text-green-500">✓ Доступ выдан!</span>}
+                              </div>
                             </div>
 
                             <div>
