@@ -71,6 +71,40 @@ serve(async (req) => {
       });
     }
 
+    // ─── CREATE USER ───
+    if (endpoint === "create-user" && req.method === "POST") {
+      const { email, password, trialDays } = await req.json();
+      if (!email || !password) {
+        return new Response(JSON.stringify({ error: "Email and password required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+      if (createError || !newUser?.user) {
+        return new Response(JSON.stringify({ error: createError?.message || "Failed to create user" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const newUserId = newUser.user.id;
+      if (trialDays && trialDays > 0) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + trialDays);
+        await supabaseAdmin.from("subscriptions").insert({
+          user_id: newUserId,
+          plan: "trial",
+          status: "active",
+          starts_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+        });
+      }
+      return new Response(JSON.stringify({ success: true, userId: newUserId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     // ─── OVERVIEW ───
     if (endpoint === "overview") {
       const [
