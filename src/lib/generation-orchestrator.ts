@@ -16,6 +16,7 @@ interface SlideResult {
   content: string;
   imageBase64: string;
   mimeType: string;
+  slideUrl?: string;
 }
 
 interface GenerationCallbacks {
@@ -83,6 +84,7 @@ async function generateInBatches(
               content: item.content,
               imageBase64: data.imageBase64,
               mimeType: data.mimeType,
+              slideUrl: data.slideUrl || "",
             };
           }
           console.warn(`Slide ${item.slideNumber} returned empty image`);
@@ -95,6 +97,7 @@ async function generateInBatches(
           content: item.content,
           imageBase64: "",
           mimeType: "image/png",
+          slideUrl: "",
         };
       })
     );
@@ -178,6 +181,7 @@ export async function orchestrateGeneration(
         content: slideTexts[0].content,
         imageBase64: slide1Data.imageBase64 || "",
         mimeType: slide1Data.mimeType || "image/png",
+        slideUrl: slide1Data.slideUrl || "",
       },
       ...remainingSlides,
     ];
@@ -202,6 +206,7 @@ export async function orchestrateGeneration(
 
   // Step 4: Log generation (fire and forget)
   const slidesForLog = cleanedSlides.map(({ imageBase64: _, ...rest }) => rest);
+  const slideUrls = cleanedSlides.map(s => s.slideUrl || "").filter(Boolean);
   callEdgeFunction(token, {
     mode: "log",
     style,
@@ -211,6 +216,7 @@ export async function orchestrateGeneration(
     caption,
     durationMs,
     slidesJson: slidesForLog,
+    slideUrls,
     error: cleanedSlides.filter(s => !s.imageBase64).length > 0
       ? `${cleanedSlides.filter(s => !s.imageBase64).length} slides failed`
       : null,

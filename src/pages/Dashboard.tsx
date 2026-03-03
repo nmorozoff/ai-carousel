@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
 import { orchestrateGeneration, regenerateMissingSlides } from "@/lib/generation-orchestrator";
+import CarouselArchive from "@/components/dashboard/CarouselArchive";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import professionalSample1 from "@/assets/samples/professional-1.jpeg";
@@ -111,6 +112,7 @@ const Dashboard = () => {
   const [caption, setCaption] = useState<string | null>(null);
   const [captionCopied, setCaptionCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"slides" | "caption">("slides");
+  const [dashboardView, setDashboardView] = useState<"generator" | "archive">("generator");
   const [userPhotos, setUserPhotos] = useState<string[]>([]);
   const [email, setEmail] = useState("");
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
@@ -420,6 +422,40 @@ const Dashboard = () => {
           </motion.div>
         )}
 
+        {/* View toggle: Generator / Archive */}
+        <div className="flex gap-1 mb-4 bg-muted/50 rounded-xl p-1">
+          <button
+            onClick={() => setDashboardView("generator")}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              dashboardView === "generator"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            🎨 Генератор
+          </button>
+          <button
+            onClick={() => setDashboardView("archive")}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              dashboardView === "archive"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            📁 Архив каруселей
+          </button>
+        </div>
+
+        {dashboardView === "archive" ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-2xl p-6"
+          >
+            <CarouselArchive />
+          </motion.div>
+        ) : (
+        <>
         {/* Текст для карусели */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -684,6 +720,8 @@ const Dashboard = () => {
             </motion.div>
           ) : null}
         </AnimatePresence>
+        </>
+        )}
       </div>
     </div>
   );
