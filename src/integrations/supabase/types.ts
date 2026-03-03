@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      carousel_sessions: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          slide_urls: string[] | null
+          style: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          slide_urls?: string[] | null
+          style?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          slide_urls?: string[] | null
+          style?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       generation_logs: {
         Row: {
           api_provider: string | null
