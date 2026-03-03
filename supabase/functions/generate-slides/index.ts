@@ -1059,10 +1059,36 @@ serve(async (req) => {
         characterDescription,
         autoStyleEnhancement
       );
+      // Сохраняем слайд в Supabase Storage
+      let slideUrl = "";
+      try {
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const ext = imageData.mimeType === "image/jpeg" ? "jpg" : "png";
+        const fileName = `${userId}/${Date.now()}_slide${slideNumber}.${ext}`;
+        const binaryStr = atob(imageData.imageBase64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from("carousel-slides")
+          .upload(fileName, bytes, { contentType: imageData.mimeType, upsert: false });
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabaseAdmin.storage
+            .from("carousel-slides")
+            .getPublicUrl(fileName);
+          slideUrl = urlData?.publicUrl || "";
+        }
+      } catch (storageErr) {
+        console.warn("[storage] Failed to save slide:", storageErr);
+      }
+
       return new Response(JSON.stringify({
         success: true,
         imageBase64: imageData.imageBase64,
         mimeType: imageData.mimeType,
+        slideUrl,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -1108,6 +1134,15 @@ serve(async (req) => {
           error,
           api_provider: apiProvider || "gemini",
         });
+
+        if (body.slideUrls && body.slideUrls.length > 0) {
+          await supabaseAdmin.from("carousel_sessions").insert({
+            user_id: userId,
+            style: style || "Профессиональный",
+            slide_urls: body.slideUrls,
+            caption: caption || "",
+          });
+        }
       } catch (logErr) {
         console.error("Failed to save log:", logErr);
       }
