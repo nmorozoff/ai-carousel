@@ -388,8 +388,8 @@ const Dashboard = () => {
     URL.revokeObjectURL(link.href);
   };
 
-  // Экран ожидания — подписка есть но ключи не назначены
-  if (hasApiKeys === false) {
+  // Экран ожидания — подписка есть но ключи не назначены (не для админа)
+  if (hasApiKeys === false && !isAdminUser) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="glass rounded-2xl p-8 max-w-md w-full text-center space-y-4">
