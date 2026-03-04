@@ -68,14 +68,25 @@ const Payment = () => {
         body: { plan: selectedPlan },
       });
       if (error) throw error;
-      if (data?.paymentUrl) {
-        window.open(data.paymentUrl, "_blank");
-      } else {
-        throw new Error("No payment URL");
-      }
+      if (!data?.formAction || !data?.formData) throw new Error("No form data");
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = data.formAction;
+      form.target = "_blank";
+      Object.entries(data.formData).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
     } catch (err: any) {
       console.error(err);
-      toast.error("Ошибка создания платежа");
+      toast.error(err?.message || "Ошибка создания платежа");
     } finally {
       setLoading(false);
     }
