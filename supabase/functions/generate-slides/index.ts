@@ -750,7 +750,7 @@ async function generateImageGrsai(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + GRSAI_API_KEY,
+        "Authorization": "Bearer " + apiKey,
       },
       body: JSON.stringify({ id: taskId }),
     });
@@ -1122,7 +1122,7 @@ ${rawText}`;
         }
       }
 
-      console.log(`[image] Generating slide ${slideNumber} image, backup API: ${USE_BACKUP_API}`);
+      console.log(`[image] Generating slide ${slideNumber} image, preferred API: ${apiKeys.preferredApi}`);
       const imageData = await generateOneSlideImage(
         slideNumber, title, content || "",
         style || "Профессиональный",
