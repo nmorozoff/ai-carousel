@@ -151,8 +151,11 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string | null
+          gemini_api_key: string | null
           generation_limit: number | null
+          grsai_api_key: string | null
           id: string
+          preferred_api: string | null
           updated_at: string
           user_id: string
         }
@@ -160,8 +163,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          gemini_api_key?: string | null
           generation_limit?: number | null
+          grsai_api_key?: string | null
           id?: string
+          preferred_api?: string | null
           updated_at?: string
           user_id: string
         }
@@ -169,8 +175,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          gemini_api_key?: string | null
           generation_limit?: number | null
+          grsai_api_key?: string | null
           id?: string
+          preferred_api?: string | null
           updated_at?: string
           user_id?: string
         }

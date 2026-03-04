@@ -403,7 +403,7 @@ const Dashboard = () => {
           <p className="text-muted-foreground text-sm">
             Если оплата прошла ночью — активируем с утра, как только начнётся рабочий день.
           </p>
-          
+          <a
             href="https://t.me/carousel_support"
             target="_blank"
             rel="noopener noreferrer"
