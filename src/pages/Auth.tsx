@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
+type AuthMode = "login" | "signup" | "forgot" | "reset";
+
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -16,24 +18,55 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const authRedirectUrl = `${window.location.origin}/auth`;
+
+  // Обработка перехода по ссылке восстановления пароля
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const params = new URLSearchParams(hash.replace("#", ""));
+    const type = params.get("type");
+    if (type === "recovery") {
+      setMode("reset");
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate(redirectTo);
-      } else {
+      } else if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { display_name: name } },
+          options: {
+            data: { display_name: name },
+            emailRedirectTo: authRedirectUrl,
+          },
         });
         if (error) throw error;
         toast.success("Аккаунт создан! Проверьте email для подтверждения.");
+      } else if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: authRedirectUrl,
+        });
+        if (error) throw error;
+        toast.success("Письмо с ссылкой для восстановления отправлено на вашу почту.");
+        setMode("login");
+        setEmail("");
+      } else if (mode === "reset") {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        toast.success("Пароль успешно изменён.");
+        setMode("login");
+        setPassword("");
+        navigate(redirectTo);
       }
     } catch (error: any) {
       toast.error(error.message || "Произошла ошибка");
@@ -54,38 +87,50 @@ const Auth = () => {
           </Link>
 
           <h2 className="font-heading font-bold text-2xl text-center text-foreground mb-2">
-            Добро пожаловать
+            {mode === "forgot"
+              ? "Восстановление пароля"
+              : mode === "reset"
+                ? "Новый пароль"
+                : "Добро пожаловать"}
           </h2>
           <p className="text-sm text-muted-foreground text-center mb-6">
-            Войдите или создайте аккаунт для доступа к сервису
+            {mode === "forgot"
+              ? "Введите email — мы отправим ссылку для сброса пароля"
+              : mode === "reset"
+                ? "Введите новый пароль для вашего аккаунта"
+                : "Войдите или создайте аккаунт для доступа к сервису"}
           </p>
 
-          {/* Tabs */}
-          <div className="flex rounded-xl bg-muted p-1 mb-6">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                isLogin
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Вход
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                !isLogin
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Регистрация
-            </button>
-          </div>
+          {/* Tabs — только для login/signup */}
+          {mode !== "forgot" && mode !== "reset" && (
+            <div className="flex rounded-xl bg-muted p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  mode === "login"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Вход
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  mode === "signup"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Регистрация
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            {mode === "signup" && (
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Имя</label>
                 <div className="relative">
@@ -101,36 +146,46 @@ const Auth = () => {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="pl-10 h-12 rounded-xl bg-muted/50 border-border"
-                />
+            {(mode === "login" || mode === "signup" || mode === "forgot") && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="pl-10 h-12 rounded-xl bg-muted/50 border-border"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Пароль</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="password"
-                  placeholder={isLogin ? "••••••••" : "Минимум 6 символов"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="pl-10 h-12 rounded-xl bg-muted/50 border-border"
-                />
+            {(mode === "login" || mode === "signup" || mode === "reset") && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Пароль</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    placeholder={
+                      mode === "reset"
+                        ? "Минимум 6 символов"
+                        : mode === "login"
+                          ? "••••••••"
+                          : "Минимум 6 символов"
+                    }
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required={mode !== "login"}
+                    minLength={6}
+                    className="pl-10 h-12 rounded-xl bg-muted/50 border-border"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <Button
               type="submit"
@@ -139,13 +194,43 @@ const Auth = () => {
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
-              ) : isLogin ? (
+              ) : mode === "login" ? (
                 "Войти"
-              ) : (
+              ) : mode === "signup" ? (
                 "Создать аккаунт"
+              ) : mode === "forgot" ? (
+                "Отправить ссылку"
+              ) : (
+                "Сохранить пароль"
               )}
             </Button>
           </form>
+
+          {/* Забыли пароль — показываем на экране входа */}
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => setMode("forgot")}
+              className="w-full mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Забыли пароль?
+            </button>
+          )}
+
+          {/* Назад к входу — из forgot и reset */}
+          {(mode === "forgot" || mode === "reset") && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setEmail("");
+                setPassword("");
+              }}
+              className="w-full mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Вернуться к входу
+            </button>
+          )}
 
           <p className="text-xs text-muted-foreground text-center mt-4">
             Нажимая кнопку, вы соглашаетесь с{" "}

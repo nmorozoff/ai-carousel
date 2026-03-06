@@ -132,14 +132,15 @@ export async function orchestrateGeneration(
   const caption: string = textData.caption || "";
   const seoMeta = textData.seoMeta || { title: "", keywords: "" };
   const autoStyleEnhancement: string = textData.autoStyleEnhancement || "";
+  let characterDescription = "";
 
   // Step 2: Generate images in batches of 3
   const isStorytelling = style === "Сторителлинг";
+  const isPersonazh = style === "Персонаж";
   let allSlides: SlideResult[];
 
-  if (isStorytelling) {
-    // Storytelling: slide 1 first, extract character, then 2-7 in batches
-    callbacks.onStatus("Сторителлинг: генерация слайда 1...");
+  if (isStorytelling || isPersonazh) {
+    callbacks.onStatus(isStorytelling ? "Сторителлинг: генерация слайда 1..." : "Персонаж: генерация слайда 1...");
     const slide1Data = await callEdgeFunction(token, {
       mode: "image",
       slideNumber: 1,
@@ -151,7 +152,6 @@ export async function orchestrateGeneration(
     });
     callbacks.onSlideReady(1);
 
-    let characterDescription = "";
     if (slide1Data.success && slide1Data.imageBase64) {
       callbacks.onStatus("Извлечение описания персонажа...");
       const charData = await callEdgeFunction(token, {
@@ -162,7 +162,8 @@ export async function orchestrateGeneration(
       characterDescription = charData.description || "";
     }
 
-    // Generate slides 2-7 in batches of 3
+    const batchSize = isStorytelling ? 3 : 1;
+    // Generate slides 2-7
     const remainingItems = slideTexts.slice(1).map((s, i) => ({
       slideNumber: i + 2,
       title: s.title,
@@ -170,7 +171,7 @@ export async function orchestrateGeneration(
     }));
 
     const remainingSlides = await generateInBatches(
-      remainingItems, 3, token, style, userPhotos, characterDescription, callbacks, autoStyleEnhancement
+      remainingItems, batchSize, token, style, userPhotos, characterDescription, callbacks, autoStyleEnhancement
     );
 
     allSlides = [
@@ -221,7 +222,75 @@ export async function orchestrateGeneration(
       : null,
   }).catch((e) => console.error("Log error:", e));
 
-  return { slides: cleanedSlides, caption };
+  return {
+    slides: cleanedSlides,
+    caption,
+    characterDescription,
+    autoStyleEnhancement,
+    seoMeta,
+  };
+}
+
+export interface RegenerateSlidesOptions {
+  overrides?: Map<number, { title?: string; content?: string }>;
+  characterDescription?: string;
+  autoStyleEnhancement?: string;
+  seoMeta?: { title: string; keywords: string };
+}
+
+export async function regenerateSlides(
+  token: string,
+  slides: SlideResult[],
+  slideNumbers: number[],
+  style: string,
+  userPhotos: string[],
+  options: RegenerateSlidesOptions,
+  callbacks: GenerationCallbacks
+): Promise<SlideResult[]> {
+  if (slideNumbers.length === 0) return slides;
+
+  const { overrides, characterDescription, autoStyleEnhancement, seoMeta = { title: "", keywords: "" } } = options;
+
+  callbacks.onStatus(`Перегенерация слайда ${slideNumbers.join(", ")}...`);
+
+  const items = slideNumbers.map((num) => {
+    const slide = slides.find((s) => s.slideNumber === num);
+    const ov = overrides?.get(num);
+    return {
+      slideNumber: num,
+      title: ov?.title ?? slide?.title ?? "",
+      content: ov?.content ?? slide?.content ?? "",
+    };
+  });
+
+  const regenerated = await generateInBatches(
+    items,
+    3,
+    token,
+    style,
+    userPhotos,
+    characterDescription,
+    callbacks,
+    autoStyleEnhancement
+  );
+
+  const cleaned = await cleanInBatches(regenerated, 3, token, seoMeta, callbacks);
+  const regenMap = new Map(cleaned.map((s) => [s.slideNumber, s]));
+
+  return slides.map((s) => {
+    if (regenMap.has(s.slideNumber)) {
+      const regen = regenMap.get(s.slideNumber)!;
+      return {
+        ...s,
+        title: regen.title,
+        content: regen.content,
+        imageBase64: regen.imageBase64,
+        mimeType: regen.mimeType,
+        slideUrl: regen.slideUrl ?? s.slideUrl,
+      };
+    }
+    return s;
+  });
 }
 
 export async function regenerateMissingSlides(
@@ -229,7 +298,8 @@ export async function regenerateMissingSlides(
   slides: SlideResult[],
   style: string,
   userPhotos: string[],
-  callbacks: GenerationCallbacks
+  callbacks: GenerationCallbacks,
+  options?: { characterDescription?: string; autoStyleEnhancement?: string; seoMeta?: { title: string; keywords: string } }
 ): Promise<SlideResult[]> {
   const missing = slides.filter(s => !s.imageBase64);
   if (missing.length === 0) return slides;
@@ -242,11 +312,13 @@ export async function regenerateMissingSlides(
     content: s.content,
   }));
 
+  const seoMeta = options?.seoMeta ?? { title: "", keywords: "" };
   const regenerated = await generateInBatches(
-    items, 3, token, style, userPhotos, undefined, callbacks
+    items, 3, token, style, userPhotos, options?.characterDescription, callbacks, options?.autoStyleEnhancement
   );
+  const cleaned = await cleanInBatches(regenerated, 3, token, seoMeta, callbacks);
 
-  const regenMap = new Map(regenerated.map(s => [s.slideNumber, s]));
+  const regenMap = new Map(cleaned.map(s => [s.slideNumber, s]));
   return slides.map(s => {
     if (!s.imageBase64 && regenMap.has(s.slideNumber)) {
       const regen = regenMap.get(s.slideNumber)!;

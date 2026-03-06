@@ -11,6 +11,8 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const AI_CLEANER_API_KEY = Deno.env.get("AI_CLEANER_API_KEY");
 const GRSAI_MODEL = Deno.env.get("GRSAI_MODEL") || "nano-banana-pro";
+const GRSAI_HOST = Deno.env.get("GRSAI_HOST") || "https://grsaiapi.com";
+const CAPTION_MODEL = "gemini-2.0-flash";
 // API keys are now per-user, read from profiles table
 
 // ─── Helpers ───
@@ -59,13 +61,23 @@ async function authenticateAndCheckSubscription(req: Request) {
   const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
   if (userError || !user) throw { status: 401, message: "Unauthorized" };
   const userId = user.id;
-  const { data: sub } = await supabaseClient
-    .from("subscriptions")
-    .select("expires_at")
+
+  const { data: roleData } = await supabaseClient
+    .from("user_roles")
+    .select("role")
     .eq("user_id", userId)
-    .eq("status", "active")
+    .eq("role", "admin")
     .maybeSingle();
-  if (!sub || new Date(sub.expires_at) <= new Date()) throw { status: 403, message: "Subscription required" };
+
+  if (!roleData) {
+    const { data: sub } = await supabaseClient
+      .from("subscriptions")
+      .select("expires_at")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!sub || new Date(sub.expires_at) <= new Date()) throw { status: 403, message: "Subscription required" };
+  }
 
   // Read user API keys from profile
   const supabaseAdmin = createClient(
@@ -215,7 +227,7 @@ ${funnelText}
 async function generateCaption(userText: string, funnel: string, apiKey?: string): Promise<string> {
   const activeKey = apiKey || GEMINI_API_KEY || "";
   const captionPrompt = `Ты — живой копирайтер для психологов и экспертов.
-Пишешь как человек, а не как робот.
+Пишешь как человек, а не как робот. Никакой «нейросетевой» сухости — только живая речь.
 На основе текста ниже напиши описание для поста в Instagram.
 
 ТЕКСТ:
@@ -259,21 +271,30 @@ ${funnel || "Подбери сам по теме"}
 Объём: 800-1000 символов.
 Выдай только готовый текст. Без пояснений.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${activeKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: captionPrompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
-      }),
-    }
-  );
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${CAPTION_MODEL}:generateContent?key=${activeKey}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: captionPrompt }] }],
+      generationConfig: { temperature: 0.85, maxOutputTokens: 2048 },
+    }),
+  });
 
-  if (!response.ok) return "";
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+  if (!response.ok) {
+    console.warn(`[caption] ${CAPTION_MODEL} failed (${response.status}):`, data?.error?.message || JSON.stringify(data).slice(0, 200));
+    return "";
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  if (!text && data.promptFeedback?.blockReason) {
+    console.warn("[caption] Blocked:", data.promptFeedback.blockReason);
+  } else if (!text) {
+    console.warn("[caption] Empty response, candidates:", data.candidates?.length);
+  }
+  return text;
 }
 
 async function generateSeoMeta(userText: string, apiKey?: string): Promise<{ title: string; keywords: string }> {
@@ -316,13 +337,22 @@ async function generateAutoStyleEnhancement(userText: string, baseStyle: string,
     const prompt = `Based on this carousel topic: "${userText.substring(0, 200)}"
 And base visual style: "${baseStyle}"
 
-Generate a SHORT visual enhancement (max 100 words, English only):
-- 2 specific font names from Google Fonts
-- 3 exact hex color codes fitting this topic
-- 1 key visual metaphor or element for this niche
-- 1 sentence describing the emotional mood
+Return JSON only (no markdown, no explanation):
+{
+  "accent": "#HEX",
+  "fontHeadline": "Font Name Bold",
+  "fontBody": "Font Name Regular",
+  "metaphor": "one key visual element for this niche",
+  "mood": "emotional mood in 3 words"
+}
 
-Return ONLY the enhancement text. No headers. No explanations.`;
+RULES:
+- accent: ONE hex color. Choose by topic: orange (#FF6B00) for energy/fear; green (#00C853) for money/growth; blue (#2196F3) for calm/trust; lime (#8BC34A) for motivation; coral (#FF7043) for warmth. Use this EXACT color for ALL highlights on all 7 slides.
+- fontHeadline, fontBody: Google Fonts names, same on every slide
+- metaphor: e.g. "boxing glove", "piggy bank", "compass"
+- mood: e.g. "energetic confident"
+
+Return ONLY valid JSON.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${activeKey}`,
@@ -331,7 +361,7 @@ Return ONLY the enhancement text. No headers. No explanations.`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 200 },
+          generationConfig: { maxOutputTokens: 256 },
         }),
       }
     );
@@ -342,6 +372,22 @@ Return ONLY the enhancement text. No headers. No explanations.`;
   } catch {
     return "";
   }
+}
+
+function parseStyleEnhancement(raw: string): { accent?: string; fontHeadline?: string; fontBody?: string; text?: string } {
+  const result: { accent?: string; fontHeadline?: string; fontBody?: string; text?: string } = { text: raw };
+  if (!raw?.trim()) return result;
+  try {
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (parsed.accent && /^#[0-9A-Fa-f]{6}$/.test(parsed.accent)) result.accent = parsed.accent;
+    if (parsed.fontHeadline) result.fontHeadline = parsed.fontHeadline;
+    if (parsed.fontBody) result.fontBody = parsed.fontBody;
+  } catch {
+    const hexMatch = raw.match(/#[0-9A-Fa-f]{6}/);
+    if (hexMatch) result.accent = hexMatch[0];
+  }
+  return result;
 }
 
 // ─── Style guides ───
@@ -384,9 +430,14 @@ POSES — randomly select one per slide from this list:
 
 TEXT: white rounded card at top of image.
 Headlines: deep navy (#1B2A4A), bold.
-Accent text: warm terracotta (#C0614A).
+Accent: use the ONE accent color from enhancement on ALL 7 slides. Same hex throughout. If no enhancement — warm terracotta (#C0614A).
 Thin warm-toned geometric lines in corners.
 NO plain gradient background. NO yellow blobs. NO circles.
+
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
+Use fonts from enhancement when available. Headlines: bold. Body: regular weight.
+NO mixed fonts between slides. NO varying sizes.
 
 LANGUAGE RULE — CRITICAL:
 ALL text rendered in the image must be in Russian only.
@@ -431,11 +482,15 @@ VISUAL STYLE: Light Premium Editorial — magazine cover style.
 COLOR VARIATION RULE:
 Each slide — choose ONE background tone from warm light family:
 peach / cream / blush / ivory / warm white — matching the scene.
-Accent: coral / salmon / terracotta / dusty rose.
-ONE thin coral line along RIGHT edge only.
-Colors: Dark navy (#1A2B4A) main headlines, coral accent, gray body text.
-Typography: Very large bold condensed sans-serif headlines stacked 3-4 lines left-aligned.
+Accent: use the ONE accent color from enhancement on ALL 7 slides. Same hex throughout. If no enhancement — coral.
+ONE thin accent line along RIGHT edge only.
+Colors: Dark navy (#1A2B4A) main headlines, accent for highlights, gray body text.
 Person placement: RIGHT half of image, large, bottom-aligned, slightly cut at knees.
+
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
+Use fonts from enhancement when available. Headlines: very large bold condensed sans-serif, stacked 3-4 lines left-aligned.
+NO mixed fonts between slides. NO varying sizes.
 Text placement: LEFT 45% of image, stacked vertically.
 Atmosphere: Premium editorial fashion magazine — Vogue or Harper Bazaar aesthetic.
 
@@ -457,13 +512,14 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
-    'Инфографика с экспертом': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+    'Инфографика с экспертом — светлая': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
 CRITICAL RULE — PERSON IN SLIDES:
 Use ONLY the photo uploaded by the user.
 Preserve exactly: face, hair, skin, appearance.
 Person is NATURALLY IN THE SCENE — not a cutout, not pasted onto white background.
 She physically EXISTS in this environment with matching lighting and shadows.
+Her shoes touch the floor naturally when standing. Her shadow falls on the floor. She was photographed IN this office.
 
 SCENE INTEGRATION — choose per slide topic:
 - Standing at whiteboard/flipchart in bright office, marker in hand, pointing to diagram
@@ -476,14 +532,19 @@ SCENE INTEGRATION — choose per slide topic:
 Person's pose matches the slide content — she EXPLAINS, POINTS, SHOWS.
 Warm professional lighting. Real shadows. Real depth.
 
-VISUAL STYLE: Expert Infographic — educational and engaging.
+VISUAL STYLE: Expert Infographic — LIGHT — educational and engaging.
 Background: real bright office/studio environment, NOT plain white.
 No mint, no green, no teal tones ever.
-Accent: bright tone from blue/green/coral family, vary per slide.
+Accent: use the ONE accent color from enhancement on ALL 7 slides. Same hex throughout.
 PERSON: Place expert in CENTER or LEFT of image.
 Expert physically holds or interacts with REAL PROPS relevant to the slide topic.
 INFOGRAPHIC ELEMENTS: diagrams, charts, comparison tables, icons, arrows to the RIGHT of expert — overlaid cleanly on the scene.
 Atmosphere: Educational, trustworthy, friendly expert sharing knowledge.
+
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
+Use fonts from enhancement. Headlines: bold, large. Body: regular weight.
+NO mixed fonts between slides. NO varying sizes.
 
 LANGUAGE RULE — CRITICAL:
 ALL text rendered in the image must be in Russian only.
@@ -505,6 +566,59 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
+    'Инфографика с экспертом — тёмная': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
+
+CRITICAL RULE — PERSON IN SLIDES:
+Use ONLY the photo uploaded by the user.
+Preserve exactly: face, hair, skin, appearance.
+Person is NATURALLY IN THE SCENE — not a cutout, not pasted onto dark background.
+She physically EXISTS in this environment with matching lighting and shadows.
+
+DARK BACKGROUND MUST HOLD THE CHARACTER — CRITICAL:
+The character must be PHYSICALLY GROUNDED in the dark scene. She must NOT appear floating, cut out, or composited onto the background.
+- Character must stand ON a visible dark floor, or sit IN a chair/at a desk — always on a physical surface.
+- Character casts a SOFT SHADOW on the dark floor or surface — this anchors her to the scene.
+- Ambient lighting from the dark environment falls on her — her edges blend with surroundings, no sharp cut-out halo.
+- Her clothing edges blend naturally with the dark background.
+- Include environmental anchors: dark floor visible under her feet, desk edge, chair, window frame — elements that physically contain the character in the space.
+- She was photographed IN this dark office, not added later. Same light sources illuminate both her and the environment.
+
+SCENE INTEGRATION — choose per slide topic (each scene must have visible floor/surface):
+- Standing ON dark floor at whiteboard in dark office, bright accent on screen, shadow on floor
+- Standing near large window, city lights at night, feet on floor, soft glow from window
+- Sitting AT desk with monitor showing charts, dark office, chair and desk visible
+- Presenting with tablet in hand, standing or sitting ON surface, dark room with accent elements
+- At glass board with sticky notes, dark modern office, floor visible
+- Standing in front of infographic display, feet grounded, accent lighting
+Person's pose matches the slide content — she EXPLAINS, POINTS, SHOWS.
+Expert is lit by the SAME light sources as the dark environment — soft spotlight, window glow, or screen light. Soft shadows for grounding.
+
+VISUAL STYLE: Expert Infographic — DARK — premium dark theme (like Sberbank).
+BACKGROUND: Deep dark blue #1A1A2E or #12121F. Subtle texture — blueprint lines or grid at 5% opacity.
+NO light backgrounds. NO white. NO gray backgrounds.
+ACCENT: use the ONE accent color from enhancement on ALL 7 slides. Same hex throughout.
+Use accent for: icons, highlighted text, lines, borders, buttons, badges, arrows.
+PERSON: Place expert in CENTER or LEFT. She is GROUNDED in the dark scene — standing on floor, sitting in chair, or at desk.
+Expert physically holds or interacts with REAL PROPS relevant to the slide topic.
+INFOGRAPHIC ELEMENTS: diagrams, charts, flowcharts with accent arrows. Rounded dark cards #2A2A3E for content blocks.
+Atmosphere: Premium, trustworthy, modern — like banking/fintech infographics.
+
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
+Headlines: bold sans-serif, white #FFFFFF. Body: regular weight, white #FFFFFF.
+Key words highlighted in accent color. Use fonts from enhancement.
+NO mixed fonts between slides. NO varying sizes.
+
+LANGUAGE RULE — CRITICAL:
+ALL text rendered in the image must be in Russian only.
+This includes: headlines, body text, labels, diagram captions,
+infographic elements, chart labels, arrows with text.
+ZERO English words anywhere on any slide.
+If a concept has no Russian equivalent — transliterate it into Russian.
+
+RENDER QUALITY:
+8K resolution, no AI artifacts, crisp edges, premium dark theme, professional infographic style.`,
+
     'Тёмный': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
 CRITICAL RULE — PERSON IN SLIDES:
@@ -518,6 +632,7 @@ NO white backgrounds. NO infographics. NO diagrams.
 NO 3D floating objects. NO glowing chains or stars.
 Pure cinematic atmospheric photography.
 COLOR PALETTE: Deep warm darks — burgundy (#3D0C11), rich amber, candlelight gold, soft warm shadows.
+Accent: use the ONE accent color from enhancement on ALL 7 slides when available. If no enhancement — warm gold.
 Text: warm gold serif for headlines, soft white for body.
 PERSON: She must be INSIDE THE SCENE — physically part of the environment, not a cutout overlay.
 Preserve exact face and appearance. Warm cinematic light falls on her naturally.
@@ -531,6 +646,12 @@ SCENES TO USE (rotate per slide):
 - Doorway between dark room and warm lit corridor
 TEXT placement: on naturally dark areas of the photo.
 Gold serif for headline. White for body text.
+
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
+Headlines: warm gold serif. Body: soft white, regular weight.
+NO mixed fonts between slides. NO varying sizes.
+
 ATMOSPHERE: Cinematic, emotional, premium therapy brand. Like a luxury film still.
 
 LANGUAGE RULE — CRITICAL:
@@ -598,17 +719,20 @@ Style: soft 3D clay/plastic, warm colors.
 1-2 icons per slide maximum.
 
 SLIDE NUMBERING:
-Top right corner: small gray rounded pill white text "X/7". Every slide.
+Top right corner: small gray rounded pill, white text "X/7". SAME style on EVERY slide. No orange oval, no variations.
 
 LANGUAGE RULE — CRITICAL:
 ALL text rendered in the image must be in Russian only.
 ZERO English words anywhere on any slide.
 If a concept has no Russian equivalent — transliterate it into Russian.
 
-CHARACTER CONSISTENCY:
-Keep clothing COLOR varied per slide but style identical.
-Same hair, same face, same proportions throughout.
+CHARACTER CONSISTENCY — CRITICAL:
+When characterDescription is provided (slides 2–7): use EXACTLY that character. Same hair, same face, same glasses, same blazer color.
+Keep clothing STYLE identical. Blazer: SAME color on ALL 7 slides (e.g. orange #FF7043).
+Same hair color, same hair length, same hair style on every slide.
+DO NOT vary skin tone. DO NOT change glasses. DO NOT make her younger or older.
 Base all slides on the character established in slide 1.
+Slides 6 and 7 MUST look like the SAME carousel as slides 1–5 — same fonts, same character, same visual language.
 
 RENDER QUALITY:
 8K resolution, no AI artifacts, natural skin texture`,
@@ -625,11 +749,14 @@ ACCENT COLOR: Vibrant orange #FF6B00 — ONE color only.
 Use for: icons, highlighted text, lines, borders, buttons, badges.
 NO blue, NO green, NO mixed accents. Only orange.
 
-TYPOGRAPHY:
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
 Headlines: Bold condensed sans-serif (Bebas Neue style), ALL CAPS, white color.
 Each headline starts with a relevant emoji icon.
 Body text: Regular weight, white #FFFFFF, easy to read.
 Key words in body: highlighted in orange #FF6B00, bold.
+NO mixed fonts between slides. NO varying sizes.
+Slides 6 and 7 MUST look like the SAME carousel as slides 1–5 — same fonts, same accent, same visual language.
 
 3D ELEMENTS: Photorealistic 3D objects with depth, shadows and neon glow.
 Objects must look premium rendered — NOT flat icons, NOT clipart.
@@ -670,6 +797,12 @@ TEXT PLACEMENT:
 - Lines 2-3: body text — white italic 24px, positioned below headline.
 - Do NOT show raw labels like "TITLE:" or "BODY:" — render the text naturally.
 Slides 1-7: Small dark-grey rounded pill in top-right corner: X/7.
+
+TYPOGRAPHY — CRITICAL:
+Same font for headlines on ALL 7 slides. Same font for body text on ALL 7 slides.
+NO mixed fonts between slides. NO varying sizes.
+Slides 6 and 7 MUST look like the SAME carousel as slides 1–5 — same fonts, same visual language.
+
 Lighting: warm cinematic sunset lighting (golden hour).
 Each scene: dramatically expressive characters, emotions readable.
 Depth of field — foreground sharp, background soft bokeh.
@@ -691,6 +824,7 @@ RENDER QUALITY:
 8K resolution, photorealistic, no AI artifacts, no plastic skin,
 natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
   };
+  if (style === 'Инфографика с экспертом') return styles['Инфографика с экспертом — светлая'];
   return styles[style] || styles['Профессиональный'];
 }
 
@@ -698,7 +832,7 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
 function getPhotoIntegrationBlock(style: string, hasPhotos: boolean): string {
   if (!hasPhotos) return "";
-  const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж', 'Инфографика с экспертом'];
+  const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж', 'Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная'];
   if (!photoStyles.includes(style)) return "";
   return `
 PHOTO INTEGRATION — CRITICAL:
@@ -726,22 +860,30 @@ async function generateImageGrsai(
 ): Promise<{ imageBase64: string; mimeType: string }> {
   if (!apiKey) throw new Error("Резервный API не настроен. Обратитесь в поддержку.");
 
-  const requestBody: any = {
+  const requestBody: Record<string, unknown> = {
     model: GRSAI_MODEL,
     prompt: prompt,
     aspectRatio: "4:5",
-    imageSize: "1K",
     webHook: "-1",
     shutProgress: true,
   };
 
-  if (userPhotos && userPhotos.length > 0) {
-    requestBody.urls = userPhotos
-      .slice(0, 3)
-      .map((p: string) => "data:image/jpeg;base64," + p);
+  // imageSize supported by nano-banana-2, nano-banana-pro
+  if (["nano-banana-2", "nano-banana-pro"].includes(GRSAI_MODEL)) {
+    (requestBody as any).imageSize = "1K";
   }
 
-  const response = await fetch("https://grsaiapi.com/v1/draw/nano-banana", {
+  if (userPhotos && userPhotos.length > 0) {
+    (requestBody as any).urls = userPhotos.slice(0, 3).map((p: string) => {
+      const base64 = p.startsWith("data:") ? p.replace(/^data:[^;]+;base64,/, "") : p;
+      return base64;
+    });
+  }
+
+  const createUrl = `${GRSAI_HOST.replace(/\/$/, "")}/v1/draw/nano-banana`;
+  const resultUrl = `${GRSAI_HOST.replace(/\/$/, "")}/v1/draw/result`;
+
+  const response = await fetch(createUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -750,14 +892,30 @@ async function generateImageGrsai(
     body: JSON.stringify(requestBody),
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error("Grsai API error " + response.status + ": " + err);
+  const rawText = await response.text();
+  let initData: any;
+  try {
+    initData = JSON.parse(rawText);
+  } catch {
+    throw new Error("Grsai API error " + response.status + ": " + rawText.substring(0, 300));
   }
 
-  const initData = await response.json();
+  if (!response.ok) {
+    const msg = initData?.msg || initData?.error || rawText.substring(0, 300);
+    throw new Error("Grsai API error " + response.status + ": " + msg);
+  }
+
+  if (initData?.code !== undefined && initData.code !== 0) {
+    const msg = initData?.msg || initData?.error || "Unknown error";
+    console.error("[Grsai] Create failed:", JSON.stringify(initData));
+    throw new Error("Grsai: " + msg);
+  }
+
   const taskId = initData?.data?.id || initData?.id;
-  if (!taskId) throw new Error("Grsai: не получен task id");
+  if (!taskId) {
+    console.error("[Grsai] No task id in response:", JSON.stringify(initData));
+    throw new Error("Grsai: не получен task id. Ответ: " + (initData?.msg || "неизвестно"));
+  }
 
   console.log("[Grsai] Task created: " + taskId);
 
@@ -765,7 +923,7 @@ async function generateImageGrsai(
   for (let i = 0; i < 120; i++) {
     await new Promise(resolve => setTimeout(resolve, 3000));
 
-    const pollResponse = await fetch("https://grsaiapi.com/v1/draw/result", {
+    const pollResponse = await fetch(resultUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -774,29 +932,50 @@ async function generateImageGrsai(
       body: JSON.stringify({ id: taskId }),
     });
 
-    if (!pollResponse.ok) continue;
+    const pollRaw = await pollResponse.text();
+    if (!pollResponse.ok) {
+      console.warn("[Grsai] Poll " + (i + 1) + " HTTP " + pollResponse.status + ": " + pollRaw.substring(0, 200));
+      continue;
+    }
 
-    const pollData = await pollResponse.json();
+    let pollData: any;
+    try {
+      pollData = JSON.parse(pollRaw);
+    } catch {
+      continue;
+    }
+
+    if (pollData?.code !== undefined && pollData.code !== 0) {
+      if (pollData.code === -22) {
+        throw new Error("Grsai: задача не найдена (id: " + taskId + ")");
+      }
+      console.warn("[Grsai] Poll " + (i + 1) + " code=" + pollData.code + ": " + (pollData?.msg || ""));
+      continue;
+    }
+
     const result = pollData?.data;
-
-    console.log("[Grsai] Poll " + (i+1) + ": status=" + result?.status);
+    console.log("[Grsai] Poll " + (i + 1) + ": status=" + result?.status);
 
     if (result?.status === "succeeded" && result?.results?.[0]?.url) {
       imageUrl = result.results[0].url;
       break;
     }
     if (result?.status === "failed") {
-      console.error("Grsai failed: " + result?.failure_reason);
-      break;
+      const reason = result?.failure_reason || result?.error || "unknown";
+      console.error("[Grsai] Task failed:", reason);
+      throw new Error("Grsai: генерация не удалась — " + reason);
     }
   }
 
-  if (!imageUrl) return { imageBase64: "", mimeType: "image/png" };
+  if (!imageUrl) {
+    throw new Error("Grsai: таймаут — изображение не получено за 6 минут");
+  }
 
   console.log("[Grsai] Downloading: " + imageUrl);
   const imgResponse = await fetch(imageUrl);
-  console.log("[Grsai] Download status: " + imgResponse.status);
-  if (!imgResponse.ok) return { imageBase64: "", mimeType: "image/png" };
+  if (!imgResponse.ok) {
+    throw new Error("Grsai: не удалось загрузить изображение (HTTP " + imgResponse.status + ")");
+  }
   const arrayBuffer = await imgResponse.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   let binary = "";
@@ -823,19 +1002,26 @@ async function generateOneSlideImage(
   const hasPhotos = userPhotos && userPhotos.length > 0;
   const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
-  const personStyles = ['Профессиональный', 'Светлый', 'Инфографика с экспертом', 'Тёмный', 'Персонаж'];
+  const personStyles = ['Профессиональный', 'Светлый', 'Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная', 'Тёмный', 'Персонаж'];
   const hasPersonInScene = personStyles.includes(style);
 
-  const characterBlock = (style === 'Сторителлинг' && characterDescription)
-    ? `\nMAIN CHARACTER CONSISTENCY:\nUse exactly this person in this slide:\n${characterDescription}\nSame face, same hair, same appearance.\nDo NOT change or replace this character.\n`
+  const characterBlock = characterDescription && (style === 'Сторителлинг' || (style === 'Персонаж' && slideNumber > 1))
+    ? `\nMAIN CHARACTER CONSISTENCY — CRITICAL:\nUse EXACTLY this character in this slide. Do NOT vary.\n${characterDescription}\nSame face, same hair color, same hair style, same glasses, same skin tone, same age.\nSame blazer color (e.g. orange) on ALL slides. Do NOT change or replace this character.\n`
     : "";
 
   const photoIntegrationBlock = getPhotoIntegrationBlock(style, hasPhotos && needsPhoto);
 
   const noEnhancementStyles = ['Схемы & Инфографика'];
-  const styleEnhancementBlock = autoStyleEnhancement && !noEnhancementStyles.includes(style)
-    ? `\nTOPIC-SPECIFIC STYLE ENHANCEMENT:\n${autoStyleEnhancement}\nApply these enhancements while maintaining base style.\n`
+  const parsed = parseStyleEnhancement(autoStyleEnhancement || "");
+  const accentBlock = parsed.accent
+    ? `\nPRIMARY ACCENT COLOR — CRITICAL: Use ${parsed.accent} for ALL highlights, icons, buttons, arrows, key words on ALL 7 slides. Same color throughout. No other accent colors.\n`
     : "";
+  const fontBlock = (parsed.fontHeadline || parsed.fontBody)
+    ? `\nTYPOGRAPHY: Headlines — ${parsed.fontHeadline || "bold sans-serif"}. Body — ${parsed.fontBody || "regular sans-serif"}. Use SAME fonts on every slide.\n`
+    : "";
+  const styleEnhancementBlock = autoStyleEnhancement && !noEnhancementStyles.includes(style)
+    ? `\nTOPIC-SPECIFIC STYLE ENHANCEMENT:\n${autoStyleEnhancement}\n${accentBlock}${fontBlock}Apply these enhancements while maintaining base style.\n`
+    : accentBlock || fontBlock ? `${accentBlock}${fontBlock}` : "";
 
   const renderTextBlock = style === 'Сторителлинг'
     ? `Render this text IN the image design:\nTitle: '${title}'\nBody text: '${content || ""}'`
@@ -844,7 +1030,7 @@ async function generateOneSlideImage(
   const prompt = `CRITICAL: Do NOT embed any AI-related metadata, keywords or tags in the image. No mentions of ChatGPT, Gemini, AI, artificial intelligence in any metadata fields.
 CRITICAL: Vertical format 1080x1350px (4:5 ratio). NOT square. NOT 1080x1080px. NEVER square.
 
-MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel.
+MANDATORY VISUAL CONSISTENCY: All 7 slides must share identical color palette, lighting mood, and typography style throughout the carousel. Slides 6 and 7 MUST look like the SAME carousel as slides 1-5 — same fonts, same accent color, same visual language. Do NOT switch to a different style.
 
 LANGUAGE RULE — CRITICAL FOR ALL STYLES:
 ALL text rendered in the image must be in Russian only.
@@ -937,7 +1123,7 @@ async function describeCharacterFromImage(imageBase64: string, mimeType: string,
             role: "user",
             parts: [
               { inlineData: { mimeType, data: imageBase64 } },
-              { text: "Describe the main character in this image in detail: hair color, hair style, hair length, face features, skin tone, age, clothing. Return only a short English description, 2-3 sentences maximum." },
+              { text: "Describe the main character in this image in detail: hair color, hair style, hair length, face features, skin tone, age, glasses (style: round/rectangular, color), blazer/jacket color. Be specific so the same character can be reproduced exactly. Return only a short English description, 2-3 sentences maximum." },
             ],
           }],
           generationConfig: { temperature: 0.2, maxOutputTokens: 256 },
@@ -1071,12 +1257,26 @@ ${rawText}`;
         const parseData = await parseResponse.json();
         const rawParsed = parseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
         const slideContents = parseJsonResponse(rawParsed);
+
+        let caption = (await generateCaption(rawText, funnel || "", userGeminiKey))?.trim() || "";
+        if (!caption && slideContents?.length > 0) {
+          const titles = slideContents.slice(0, 7).map((s: { title?: string }) => s.title).filter(Boolean).join(". ");
+          caption = titles ? `${titles}\n\nСохрани себе — пригодится!` : "";
+        }
+        const seoMeta = await generateSeoMeta(rawText, userGeminiKey).catch(() => ({ title: "", keywords: "" }));
+        let autoStyleEnhancement = "";
+        try {
+          autoStyleEnhancement = await generateAutoStyleEnhancement(rawText.substring(0, 200), style || "Профессиональный", userGeminiKey);
+        } catch (e) {
+          console.warn("Auto style enhancement failed:", e);
+        }
+
         return new Response(JSON.stringify({
           success: true,
           slides: slideContents.slice(0, 7),
-          caption: "",
-          seoMeta: {},
-          autoStyleEnhancement: "",
+          caption,
+          seoMeta,
+          autoStyleEnhancement,
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
@@ -1086,11 +1286,16 @@ ${rawText}`;
         });
       }
       console.log(`[text] Generating texts for style: ${style}, api: ${preferredApi}`);
-      const [slideContents, caption, seoMeta] = await Promise.all([
+      const [slideContents, rawCaption, seoMeta] = await Promise.all([
         generateSlideContent(userText, funnel || "", style || "Профессиональный", userGeminiKey),
         generateCaption(userText, funnel || "", userGeminiKey),
         generateSeoMeta(userText, userGeminiKey),
       ]);
+      let caption = rawCaption?.trim() || "";
+      if (!caption && slideContents?.length > 0) {
+        const titles = slideContents.slice(0, 7).map((s: { title?: string }) => s.title).filter(Boolean).join(". ");
+        caption = titles ? `${titles}\n\nСохрани себе — пригодится!` : "";
+      }
       let autoStyleEnhancement = "";
       try {
         autoStyleEnhancement = await generateAutoStyleEnhancement(userText, style || "Профессиональный", userGeminiKey);

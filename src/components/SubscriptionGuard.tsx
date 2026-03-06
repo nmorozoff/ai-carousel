@@ -14,6 +14,19 @@ const SubscriptionGuard = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      // Админ — всегда доступ без подписки
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (roleData) {
+        setStatus("active");
+        return;
+      }
+
       const { data } = await supabase
         .from("subscriptions")
         .select("status, expires_at")

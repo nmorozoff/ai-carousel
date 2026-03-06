@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Download, FileArchive, User, CalendarDays, Copy, Check, FileText, RefreshCw, Zap } from "lucide-react";
+import { ArrowLeft, Loader2, Download, FileArchive, User, CalendarDays, Copy, Check, FileText, RefreshCw, Zap, Pencil } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 import PhotoReference from "@/components/dashboard/PhotoReference";
-import { orchestrateGeneration, regenerateMissingSlides } from "@/lib/generation-orchestrator";
+import { orchestrateGeneration, regenerateMissingSlides, regenerateSlides, type RegenerateSlidesOptions } from "@/lib/generation-orchestrator";
 import CarouselArchive from "@/components/dashboard/CarouselArchive";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import professionalSample1 from "@/assets/samples/professional-1.jpeg";
@@ -49,6 +50,13 @@ import darkSample4 from "@/assets/samples/dark-4.jpeg";
 import darkSample5 from "@/assets/samples/dark-5.jpeg";
 import darkSample6 from "@/assets/samples/dark-6.jpeg";
 import darkSample7 from "@/assets/samples/dark-7.jpeg";
+import expertInfographicDark1 from "@/assets/samples/expert-infographic-dark-1.png";
+import expertInfographicDark2 from "@/assets/samples/expert-infographic-dark-2.png";
+import expertInfographicDark3 from "@/assets/samples/expert-infographic-dark-3.png";
+import expertInfographicDark4 from "@/assets/samples/expert-infographic-dark-4.png";
+import expertInfographicDark5 from "@/assets/samples/expert-infographic-dark-5.png";
+import expertInfographicDark6 from "@/assets/samples/expert-infographic-dark-6.png";
+import expertInfographicDark7 from "@/assets/samples/expert-infographic-dark-7.png";
 import illustratedSample1 from "@/assets/samples/illustrated-1.jpeg";
 import illustratedSample2 from "@/assets/samples/illustrated-2.jpeg";
 import illustratedSample3 from "@/assets/samples/illustrated-3.jpeg";
@@ -68,6 +76,7 @@ const lightEditorialSamples = [lightEditorialSample1, lightEditorialSample2, lig
 const infographicSamples = [infographicSample1, infographicSample2, infographicSample3, infographicSample4, infographicSample5, infographicSample6, infographicSample7];
 const expertSamples = [expertSample1, expertSample2, expertSample3, expertSample4, expertSample5, expertSample6, expertSample7];
 const darkSamples = [darkSample1, darkSample2, darkSample3, darkSample4, darkSample5, darkSample6, darkSample7];
+const expertInfographicDarkSamples = [expertInfographicDark1, expertInfographicDark2, expertInfographicDark3, expertInfographicDark4, expertInfographicDark5, expertInfographicDark6, expertInfographicDark7];
 const illustratedSamples = [illustratedSample1, illustratedSample2, illustratedSample3, illustratedSample4, illustratedSample5, illustratedSample6, illustratedSample7];
 const storytellingSamples = [storytellingSample1, storytellingSample2, storytellingSample3, storytellingSample4, storytellingSample5, storytellingSample6, storytellingSample7];
 
@@ -76,7 +85,8 @@ const professionalSamples = [professionalSample1, professionalSample2, professio
 const carouselStyles = [
   { id: "professional", name: "Профессиональный", samples: professionalSamples, subtitle: null, noPhoto: false },
   { id: "light-editorial", name: "Светлый", samples: lightEditorialSamples, subtitle: null, noPhoto: false },
-  { id: "expert-infographic", name: "Инфографика с экспертом", samples: expertSamples, subtitle: null, noPhoto: false },
+  { id: "expert-infographic-light", name: "Инфографика с экспертом — светлая", samples: expertSamples, subtitle: null, noPhoto: false },
+  { id: "expert-infographic-dark", name: "Инфографика с экспертом — тёмная", samples: expertInfographicDarkSamples, subtitle: null, noPhoto: false },
   { id: "dark", name: "Тёмный", samples: darkSamples, subtitle: null, noPhoto: false },
   { id: "illustrated", name: "Персонаж", samples: illustratedSamples, subtitle: "Загрузи своё фото — на его основе создаётся твой 3D персонаж", noPhoto: false },
   { id: "infographic", name: "Схемы & Инфографика", samples: infographicSamples, subtitle: "Фото не требуется — стиль на основе схем и данных", noPhoto: true },
@@ -86,7 +96,8 @@ const carouselStyles = [
 const styleIdToName: Record<string, string> = {
   "professional": "Профессиональный",
   "light-editorial": "Светлый",
-  "expert-infographic": "Инфографика с экспертом",
+  "expert-infographic-light": "Инфографика с экспертом — светлая",
+  "expert-infographic-dark": "Инфографика с экспертом — тёмная",
   "dark": "Тёмный",
   "illustrated": "Персонаж",
   "infographic": "Схемы & Инфографика",
@@ -117,12 +128,16 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<"slides" | "caption">("slides");
   const [dashboardView, setDashboardView] = useState<"generator" | "archive">("generator");
   const [userPhotos, setUserPhotos] = useState<string[]>([]);
+  const [characterDescription, setCharacterDescription] = useState("");
+  const [autoStyleEnhancement, setAutoStyleEnhancement] = useState("");
+  const [seoMeta, setSeoMeta] = useState<{ title: string; keywords: string }>({ title: "", keywords: "" });
+  const [regeneratingSlideNumbers, setRegeneratingSlideNumbers] = useState<Set<number>>(new Set());
+  const [editSlideModal, setEditSlideModal] = useState<{ slideNumber: number; title: string; content: string } | null>(null);
   const [email, setEmail] = useState("");
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [genUsed, setGenUsed] = useState(0);
   const [genLimit, setGenLimit] = useState(200);
   const [isAdminUser, setIsAdminUser] = useState(false);
-  const ADMIN_USER_ID = "399da17d-9727-445f-bb4b-a9e32656bac7";
 
   const selectedStyleData = carouselStyles.find(s => s.id === selectedStyle);
   const showPhotoBlock = !selectedStyleData?.noPhoto;
@@ -133,9 +148,13 @@ const Dashboard = () => {
       if (!session) return;
       setEmail(session.user.email || "");
 
-      if (session.user.id === ADMIN_USER_ID) {
-        setIsAdminUser(true);
-      }
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (roleData) setIsAdminUser(true);
 
       const { data } = await supabase
         .from("subscriptions")
@@ -210,6 +229,9 @@ const Dashboard = () => {
     setIsGenerating(true);
     setResults(null);
     setCaption(null);
+    setCharacterDescription("");
+    setAutoStyleEnhancement("");
+    setSeoMeta({ title: "", keywords: "" });
     setGenerationStatus("Подготовка...");
 
     try {
@@ -237,6 +259,9 @@ const Dashboard = () => {
 
       setResults(result.slides);
       setCaption(result.caption || null);
+      setCharacterDescription(result.characterDescription || "");
+      setAutoStyleEnhancement(result.autoStyleEnhancement || "");
+      setSeoMeta(result.seoMeta || { title: "", keywords: "" });
       setActiveTab("slides");
       toast.success("Слайды успешно сгенерированы!");
 
@@ -277,7 +302,8 @@ const Dashboard = () => {
         {
           onStatus: (status) => setGenerationStatus(status),
           onSlideReady: (num) => setGenerationStatus(`Слайд ${num} готов ✓`),
-        }
+        },
+        { characterDescription, autoStyleEnhancement, seoMeta }
       );
       setResults(updated);
       const stillMissing = updated.filter(s => !s.imageBase64).length;
@@ -291,6 +317,107 @@ const Dashboard = () => {
       toast.error(err.message || "Ошибка при повторной генерации");
     } finally {
       setIsRegenerating(false);
+      setGenerationStatus("");
+    }
+  };
+
+  const handleRegenerateSlide = async (slideNumber: number) => {
+    if (!results) return;
+    setRegeneratingSlideNumbers((prev) => new Set(prev).add(slideNumber));
+    setGenerationStatus(`Перегенерация слайда ${slideNumber}...`);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Необходима авторизация");
+
+      const options: RegenerateSlidesOptions = {
+        characterDescription,
+        autoStyleEnhancement,
+        seoMeta,
+      };
+      const updated = await regenerateSlides(
+        token,
+        results,
+        [slideNumber],
+        styleIdToName[selectedStyle] || "Профессиональный",
+        userPhotos.map((p) => {
+          const m = p.match(/^data:[^;]+;base64,(.+)$/);
+          return m ? m[1] : p;
+        }),
+        options,
+        {
+          onStatus: (status) => setGenerationStatus(status),
+          onSlideReady: (num) => setGenerationStatus(`Слайд ${num} готов ✓`),
+        }
+      );
+      setResults(updated);
+      toast.success(`Слайд ${slideNumber} перегенерирован`);
+    } catch (err: any) {
+      console.error("Regenerate slide error:", err);
+      toast.error(err.message || "Ошибка при перегенерации");
+    } finally {
+      setRegeneratingSlideNumbers((prev) => {
+        const next = new Set(prev);
+        next.delete(slideNumber);
+        return next;
+      });
+      setGenerationStatus("");
+    }
+  };
+
+  const handleEditAndRegenerateSlide = (slide: SlideResult) => {
+    setEditSlideModal({
+      slideNumber: slide.slideNumber,
+      title: slide.title,
+      content: slide.content,
+    });
+  };
+
+  const handleSubmitEditSlide = async (title: string, content: string) => {
+    if (!results || !editSlideModal) return;
+    const { slideNumber } = editSlideModal;
+    setEditSlideModal(null);
+    setRegeneratingSlideNumbers((prev) => new Set(prev).add(slideNumber));
+    setGenerationStatus(`Перегенерация слайда ${slideNumber}...`);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Необходима авторизация");
+
+      const overrides = new Map<number, { title: string; content: string }>();
+      overrides.set(slideNumber, { title, content });
+      const options: RegenerateSlidesOptions = {
+        overrides,
+        characterDescription,
+        autoStyleEnhancement,
+        seoMeta,
+      };
+      const updated = await regenerateSlides(
+        token,
+        results,
+        [slideNumber],
+        styleIdToName[selectedStyle] || "Профессиональный",
+        userPhotos.map((p) => {
+          const m = p.match(/^data:[^;]+;base64,(.+)$/);
+          return m ? m[1] : p;
+        }),
+        options,
+        {
+          onStatus: (status) => setGenerationStatus(status),
+          onSlideReady: (num) => setGenerationStatus(`Слайд ${num} готов ✓`),
+        }
+      );
+      setResults(updated);
+      toast.success(`Слайд ${slideNumber} перегенерирован с новым текстом`);
+    } catch (err: any) {
+      console.error("Edit and regenerate error:", err);
+      toast.error(err.message || "Ошибка при перегенерации");
+    } finally {
+      setRegeneratingSlideNumbers((prev) => {
+        const next = new Set(prev);
+        next.delete(slideNumber);
+        return next;
+      });
       setGenerationStatus("");
     }
   };
@@ -311,18 +438,17 @@ const Dashboard = () => {
       zip.file(`slide-${slide.slideNumber}.${ext}`, slide.imageBase64, { base64: true });
     });
 
-    // Build post-description.txt
+    // Build post-description.txt — всегда добавляем, даже если caption пустой
     const descParts: string[] = [];
-    if (caption) {
-      // Extract hashtags from caption
+    const textToUse = displayCaption;
+    if (textToUse) {
       const hashtagRegex = /#[а-яА-ЯёЁa-zA-Z0-9_]+/g;
-      const allHashtags = caption.match(hashtagRegex) || [];
-      const captionWithoutHashtags = caption.replace(hashtagRegex, "").replace(/\n{3,}/g, "\n\n").trim();
+      const allHashtags = textToUse.match(hashtagRegex) || [];
+      const captionWithoutHashtags = textToUse.replace(hashtagRegex, "").replace(/\n{3,}/g, "\n\n").trim();
 
       descParts.push(captionWithoutHashtags);
       descParts.push("");
 
-      // Ensure exactly 5 hashtags
       let hashtags = allHashtags.slice(0, 5);
       if (hashtags.length < 5) {
         const fallback = ["#эксперт", "#контент", "#карусель", "#маркетинг", "#продвижение", "#бизнес", "#smm"];
@@ -371,16 +497,18 @@ const Dashboard = () => {
     }
   };
 
+  const displayCaption = caption || (results?.length ? results.map((s) => s.title).filter(Boolean).join(". ") + "\n\nСохрани себе — пригодится!" : "");
+
   const copyCaption = async () => {
-    if (!caption) return;
-    await navigator.clipboard.writeText(caption);
+    if (!displayCaption) return;
+    await navigator.clipboard.writeText(displayCaption);
     setCaptionCopied(true);
     setTimeout(() => setCaptionCopied(false), 2000);
   };
 
   const downloadCaption = () => {
-    if (!caption) return;
-    const blob = new Blob([caption], { type: "text/plain;charset=utf-8" });
+    if (!displayCaption) return;
+    const blob = new Blob([displayCaption], { type: "text/plain;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "описание_карусели.txt";
@@ -565,7 +693,7 @@ const Dashboard = () => {
               photos={userPhotos}
               onChange={setUserPhotos}
               subtitle={
-                selectedStyle === "expert-infographic"
+                (selectedStyle === "expert-infographic-light" || selectedStyle === "expert-infographic-dark")
                   ? "Загрузите фото — эксперт появится в сцене с реквизитом"
                   : "Загрузите 1-3 фото себя — ИИ вставит вас в слайды"
               }
@@ -751,34 +879,52 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    {results.map((slide) => (
-                      <div key={slide.slideNumber} className={`relative group rounded-xl overflow-hidden border ${slide.imageBase64 ? 'border-border/30' : 'border-destructive/50 bg-destructive/5'}`}>
-                        {slide.imageBase64 ? (
-                          <img
-                            src={`data:${slide.mimeType};base64,${slide.imageBase64}`}
-                            alt={`Слайд ${slide.slideNumber}`}
-                            className="w-full aspect-[4/5] object-cover"
-                          />
-                        ) : (
-                          <div className="w-full aspect-[4/5] flex items-center justify-center text-muted-foreground text-sm">
-                            Не удалось сгенерировать
+                    {results.map((slide) => {
+                      const isRegenerating = regeneratingSlideNumbers.has(slide.slideNumber);
+                      return (
+                        <div key={slide.slideNumber} className={`relative group rounded-xl overflow-hidden border ${slide.imageBase64 ? "border-border/30" : "border-destructive/50 bg-destructive/5"}`}>
+                          {slide.imageBase64 && !isRegenerating ? (
+                            <img
+                              src={`data:${slide.mimeType};base64,${slide.imageBase64}`}
+                              alt={`Слайд ${slide.slideNumber}`}
+                              className="w-full aspect-[4/5] object-cover"
+                            />
+                          ) : isRegenerating ? (
+                            <div className="w-full aspect-[4/5] flex flex-col items-center justify-center gap-2 bg-muted/30">
+                              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">Перегенерация...</span>
+                            </div>
+                          ) : (
+                            <div className="w-full aspect-[4/5] flex items-center justify-center text-muted-foreground text-sm">
+                              Не удалось сгенерировать
+                            </div>
+                          )}
+                          {slide.imageBase64 && !isRegenerating && (
+                            <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => handleRegenerateSlide(slide.slideNumber)}>
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  Перегенерировать
+                                </Button>
+                                <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => handleEditAndRegenerateSlide(slide)}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  Предложи свой вариант
+                                </Button>
+                              </div>
+                              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => downloadSlide(slide)}>
+                                <Download className="w-3.5 h-3.5" />
+                                Скачать
+                              </Button>
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2">
+                            <span className="text-xs font-heading font-bold bg-background/70 rounded-md px-2 py-1">
+                              {slide.slideNumber}/7
+                            </span>
                           </div>
-                        )}
-                        {slide.imageBase64 && (
-                          <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Button size="sm" variant="secondary" className="gap-2" onClick={() => downloadSlide(slide)}>
-                              <Download className="w-4 h-4" />
-                              Скачать
-                            </Button>
-                          </div>
-                        )}
-                        <div className="absolute top-2 left-2">
-                          <span className="text-xs font-heading font-bold bg-background/70 rounded-md px-2 py-1">
-                            {slide.slideNumber}/7
-                          </span>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -786,10 +932,10 @@ const Dashboard = () => {
               {/* Caption tab */}
               {activeTab === "caption" && (
                 <div>
-                  {caption ? (
+                  {displayCaption ? (
                     <>
                       <div className="bg-background border border-border rounded-xl p-4 mb-4 whitespace-pre-line text-sm leading-relaxed min-h-[160px]">
-                        {caption}
+                        {displayCaption}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <Button variant="outline" className="gap-2 flex-1" onClick={copyCaption}>
@@ -815,11 +961,63 @@ const Dashboard = () => {
             </motion.div>
           ) : null}
         </AnimatePresence>
+
+        {/* Edit slide modal */}
+        <Dialog open={!!editSlideModal} onOpenChange={(open) => !open && setEditSlideModal(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Предложи свой вариант — слайд {editSlideModal?.slideNumber}</DialogTitle>
+            </DialogHeader>
+            {editSlideModal && (
+              <EditSlideForm
+                initialTitle={editSlideModal.title}
+                initialContent={editSlideModal.content}
+                onSubmit={(title, content) => handleSubmitEditSlide(title, content)}
+                onCancel={() => setEditSlideModal(null)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
         </>
         )}
       </div>
     </div>
   );
 };
+
+function EditSlideForm({
+  initialTitle,
+  initialContent,
+  onSubmit,
+  onCancel,
+}: {
+  initialTitle: string;
+  initialContent: string;
+  onSubmit: (title: string, content: string) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [content, setContent] = useState(initialContent);
+  return (
+    <div className="space-y-4 py-2">
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Заголовок</label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Заголовок слайда" className="mb-2" />
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Текст</label>
+        <Textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Текст слайда" rows={4} className="resize-none" />
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Отмена
+        </Button>
+        <Button onClick={() => onSubmit(title.trim() || initialTitle, content.trim() || initialContent)}>
+          Перегенерировать
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
 
 export default Dashboard;
