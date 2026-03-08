@@ -17,21 +17,21 @@ export type Database = {
       activity_log: {
         Row: {
           action: string
-          created_at: string
+          created_at: string | null
           details: Json | null
           id: string
           user_id: string
         }
         Insert: {
           action: string
-          created_at?: string
+          created_at?: string | null
           details?: Json | null
           id?: string
           user_id: string
         }
         Update: {
           action?: string
-          created_at?: string
+          created_at?: string | null
           details?: Json | null
           id?: string
           user_id?: string
@@ -72,7 +72,7 @@ export type Database = {
         Row: {
           api_provider: string | null
           caption: string | null
-          created_at: string
+          created_at: string | null
           duration_ms: number | null
           error: string | null
           funnel: string | null
@@ -86,7 +86,7 @@ export type Database = {
         Insert: {
           api_provider?: string | null
           caption?: string | null
-          created_at?: string
+          created_at?: string | null
           duration_ms?: number | null
           error?: string | null
           funnel?: string | null
@@ -100,7 +100,7 @@ export type Database = {
         Update: {
           api_provider?: string | null
           caption?: string | null
-          created_at?: string
+          created_at?: string | null
           duration_ms?: number | null
           error?: string | null
           funnel?: string | null
@@ -116,7 +116,7 @@ export type Database = {
       payments: {
         Row: {
           amount: number
-          created_at: string
+          created_at: string | null
           id: string
           label: string | null
           payment_id: string | null
@@ -126,7 +126,7 @@ export type Database = {
         }
         Insert: {
           amount: number
-          created_at?: string
+          created_at?: string | null
           id?: string
           label?: string | null
           payment_id?: string | null
@@ -136,7 +136,7 @@ export type Database = {
         }
         Update: {
           amount?: number
-          created_at?: string
+          created_at?: string | null
           id?: string
           label?: string | null
           payment_id?: string | null
@@ -148,7 +148,7 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
           display_name: string | null
           email: string | null
           gemini_api_key: string | null
@@ -156,11 +156,11 @@ export type Database = {
           grsai_api_key: string | null
           id: string
           preferred_api: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
           email?: string | null
           gemini_api_key?: string | null
@@ -168,11 +168,11 @@ export type Database = {
           grsai_api_key?: string | null
           id?: string
           preferred_api?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
           email?: string | null
           gemini_api_key?: string | null
@@ -180,36 +180,36 @@ export type Database = {
           grsai_api_key?: string | null
           id?: string
           preferred_api?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
       subscriptions: {
         Row: {
-          created_at: string
+          created_at: string | null
           expires_at: string
           id: string
           plan: string
-          starts_at: string
+          starts_at: string | null
           status: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           expires_at: string
           id?: string
           plan: string
-          starts_at?: string
+          starts_at?: string | null
           status?: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           expires_at?: string
           id?: string
           plan?: string
-          starts_at?: string
+          starts_at?: string | null
           status?: string
           user_id?: string
         }
