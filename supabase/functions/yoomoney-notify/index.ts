@@ -46,8 +46,8 @@ serve(async (req) => {
     
     // Calculate SHA-1 hash
     const encoder = new TextEncoder();
-    const data = encoder.encode(hashString);
-    const hashBuffer = await crypto.subtle.digest("SHA-1", data);
+    const hashData = encoder.encode(hashString);
+    const hashBuffer = await crypto.subtle.digest("SHA-1", hashData);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const calculatedHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 
