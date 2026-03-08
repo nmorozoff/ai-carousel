@@ -42,17 +42,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    if (authError || !user) {
-      console.error("Auth error:", authError?.message);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      console.error("Auth error:", claimsError?.message);
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const userId = claimsData.claims.sub;
+    console.log("Authenticated user:", userId);
 
     const { plan } = await req.json();
     const planInfo = PLANS[plan];
@@ -64,9 +72,9 @@ Deno.serve(async (req) => {
     }
 
     // Create payment record
-    const label = `${user.id}_${plan}_${Date.now()}`;
+    const label = `${userId}_${plan}_${Date.now()}`;
     const { error: insertError } = await supabaseAdmin.from("payments").insert({
-      user_id: user.id,
+      user_id: userId,
       plan,
       amount: planInfo.amount,
       label,
@@ -92,7 +100,7 @@ Deno.serve(async (req) => {
       successURL: successUrl,
     };
 
-    console.log("Payment created:", { userId: user.id, plan, label });
+    console.log("Payment created:", { userId, plan, label });
 
     return new Response(
       JSON.stringify({
