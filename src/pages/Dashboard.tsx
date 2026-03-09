@@ -198,30 +198,11 @@ const Dashboard = () => {
   const loadApiSettings = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("preferred_api")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-    setPreferredApi((profile?.preferred_api as "gemini" | "grsai") || "gemini");
-    // Check key existence via RPC-like approach: select only non-null check
-    const { data: keyCheck } = await supabase
-      .from("profiles")
-      .select("gemini_api_key, grsai_api_key")
-      .eq("user_id", session.user.id)
-      .not("gemini_api_key", "is", null)
-      .maybeSingle();
-    // If no row returned with non-null gemini, check grsai
-    if (keyCheck) {
-      setHasApiKeys(true);
-    } else {
-      const { data: grsaiCheck } = await supabase
-        .from("profiles")
-        .select("grsai_api_key")
-        .eq("user_id", session.user.id)
-        .not("grsai_api_key", "is", null)
-        .maybeSingle();
-      setHasApiKeys(!!grsaiCheck);
+    const { data: keyInfo } = await supabase.rpc("has_api_keys", { _user_id: session.user.id });
+    if (keyInfo) {
+      const info = keyInfo as { has_gemini: boolean; has_grsai: boolean; preferred_api: string };
+      setPreferredApi((info.preferred_api as "gemini" | "grsai") || "gemini");
+      setHasApiKeys(info.has_gemini || info.has_grsai);
     }
   };
 
