@@ -165,10 +165,10 @@ const Admin = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + trialDays);
-      await supabase.from("subscriptions").upsert({ user_id: selectedUserId, plan: "trial", status: "active", starts_at: new Date().toISOString(), expires_at: expiresAt.toISOString() });
-      setTrialSuccess(true);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?endpoint=give-trial`;
+      const response = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ targetUserId: selectedUserId, trialDays }) });
+      const data = await response.json();
+      if (data.success) setTrialSuccess(true);
       await loadUserDetail(selectedUserId);
     } catch (err) { console.error("Failed to give trial:", err); }
     finally { setGivingTrial(false); }
