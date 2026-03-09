@@ -111,8 +111,7 @@ const Admin = () => {
       const data = await response.json();
       if (data) {
         setUserDetail(data);
-        const { data: profile } = await supabase.from("profiles").select("gemini_api_key, grsai_api_key, preferred_api").eq("user_id", userId).maybeSingle();
-        setApiKeys({ gemini: profile?.gemini_api_key || "", grsai: profile?.grsai_api_key || "", preferred: profile?.preferred_api || "gemini" });
+        setApiKeys(data.apiKeys || { gemini: "", grsai: "", preferred: "gemini" });
         setApiKeysSaved(false);
       }
     } catch (err) { console.error("Failed to load user detail:", err); }
@@ -123,8 +122,12 @@ const Admin = () => {
     if (!selectedUserId) return;
     setSavingApiKeys(true); setApiKeysSaved(false);
     try {
-      const { error } = await supabase.from("profiles").update({ gemini_api_key: apiKeys.gemini || null, grsai_api_key: apiKeys.grsai || null, preferred_api: apiKeys.preferred }).eq("user_id", selectedUserId);
-      if (!error) setApiKeysSaved(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?endpoint=save-api-keys`;
+      const response = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ targetUserId: selectedUserId, gemini_api_key: apiKeys.gemini || null, grsai_api_key: apiKeys.grsai || null, preferred_api: apiKeys.preferred }) });
+      const data = await response.json();
+      if (data.success) setApiKeysSaved(true);
     } catch (err) { console.error("Failed to save API keys:", err); }
     finally { setSavingApiKeys(false); }
   };
@@ -162,10 +165,10 @@ const Admin = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + trialDays);
-      await supabase.from("subscriptions").upsert({ user_id: selectedUserId, plan: "trial", status: "active", starts_at: new Date().toISOString(), expires_at: expiresAt.toISOString() });
-      setTrialSuccess(true);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-stats?endpoint=give-trial`;
+      const response = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ targetUserId: selectedUserId, trialDays }) });
+      const data = await response.json();
+      if (data.success) setTrialSuccess(true);
       await loadUserDetail(selectedUserId);
     } catch (err) { console.error("Failed to give trial:", err); }
     finally { setGivingTrial(false); }
