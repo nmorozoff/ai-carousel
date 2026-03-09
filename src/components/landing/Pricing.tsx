@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Check, Copy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { TelegramSupportLink } from "@/components/TelegramSupportLink";
 
 const plans = [
   {
@@ -102,6 +103,9 @@ const Pricing = () => (
                   Купить доступ
                 </Button>
               </Link>
+              <p className="text-xs text-muted-foreground mt-4 flex items-center justify-center gap-2">
+                <TelegramSupportLink variant="minimal" label="Вопросы? Напишите в поддержку" iconSize={16} />
+              </p>
             </div>
           </motion.div>
         ))}

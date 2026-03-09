@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { TelegramSupportLink } from "@/components/TelegramSupportLink";
 
 type AuthMode = "login" | "signup" | "forgot" | "reset";
 
@@ -234,6 +235,9 @@ const Auth = () => {
               условиями использования
             </a>
           </p>
+          <div className="mt-5 pt-4 border-t border-border/50 flex justify-center">
+            <TelegramSupportLink variant="minimal" label="Нужна помощь? Напишите в поддержку" iconSize={18} />
+          </div>
         </div>
       </div>
     </div>

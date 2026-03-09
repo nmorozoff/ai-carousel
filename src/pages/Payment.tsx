@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Copy, Sparkles, LogIn, Check } from "lucide-react";
+import { TelegramSupportLink } from "@/components/TelegramSupportLink";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Session } from "@supabase/supabase-js";
 
@@ -196,6 +197,11 @@ const Payment = () => {
               </Button>
             </Link>
           )}
+
+          <div className="mt-6 pt-6 border-t border-border/50 flex flex-col items-center gap-3">
+            <p className="text-xs text-muted-foreground">Вопросы по оплате?</p>
+            <TelegramSupportLink variant="button" label="Написать в поддержку" />
+          </div>
 
           <Link to="/" className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground mt-4 transition-colors">
             <ArrowLeft className="w-3 h-3" />

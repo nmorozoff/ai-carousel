@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, Download, FileArchive, User, CalendarDays, Copy, Check, FileText, RefreshCw, Zap, Pencil } from "lucide-react";
+import { TelegramSupportLink } from "@/components/TelegramSupportLink";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -524,14 +525,7 @@ const Dashboard = () => {
           <p className="text-muted-foreground text-sm">
             Если оплата прошла ночью — активируем с утра, как только начнётся рабочий день.
           </p>
-          <a
-            href="https://t.me/carousel_support"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            Написать в поддержку
-          </a>
+          <TelegramSupportLink variant="button" label="Написать в поддержку" />
         </div>
       </div>
     );

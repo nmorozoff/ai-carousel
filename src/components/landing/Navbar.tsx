@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { LogOut, Menu, X } from "lucide-react";
+import { TelegramSupportLink } from "@/components/TelegramSupportLink";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -46,6 +47,7 @@ const Navbar = () => {
           <button onClick={() => scrollTo("pricing")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Тариф
           </button>
+          <TelegramSupportLink variant="minimal" label="Поддержка" className="text-sm" showLabel={true} />
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -92,6 +94,7 @@ const Navbar = () => {
               <button onClick={() => scrollTo("pricing")} className="text-sm text-muted-foreground hover:text-foreground py-2.5 text-left">
                 Тариф
               </button>
+              <TelegramSupportLink variant="minimal" label="Поддержка в Telegram" className="py-2.5" onClick={() => setMobileOpen(false)} />
               <div className="border-t border-border/50 mt-2 pt-3 flex gap-2">
                 {session ? (
                   <>
