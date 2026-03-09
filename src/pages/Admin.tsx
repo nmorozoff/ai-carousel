@@ -111,8 +111,7 @@ const Admin = () => {
       const data = await response.json();
       if (data) {
         setUserDetail(data);
-        const { data: profile } = await supabase.from("profiles").select("gemini_api_key, grsai_api_key, preferred_api").eq("user_id", userId).maybeSingle();
-        setApiKeys({ gemini: profile?.gemini_api_key || "", grsai: profile?.grsai_api_key || "", preferred: profile?.preferred_api || "gemini" });
+        setApiKeys(data.apiKeys || { gemini: "", grsai: "", preferred: "gemini" });
         setApiKeysSaved(false);
       }
     } catch (err) { console.error("Failed to load user detail:", err); }
