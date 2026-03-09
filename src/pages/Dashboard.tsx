@@ -198,13 +198,12 @@ const Dashboard = () => {
   const loadApiSettings = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("preferred_api, gemini_api_key, grsai_api_key")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-    setPreferredApi((profile?.preferred_api as "gemini" | "grsai") || "gemini");
-    setHasApiKeys(!!(profile?.gemini_api_key || profile?.grsai_api_key));
+    const { data: keyInfo } = await supabase.rpc("has_api_keys", { _user_id: session.user.id });
+    if (keyInfo) {
+      const info = keyInfo as { has_gemini: boolean; has_grsai: boolean; preferred_api: string };
+      setPreferredApi((info.preferred_api as "gemini" | "grsai") || "gemini");
+      setHasApiKeys(info.has_gemini || info.has_grsai);
+    }
   };
 
   const switchApi = async (api: "gemini" | "grsai") => {
