@@ -198,7 +198,7 @@ const Dashboard = () => {
   const loadApiSettings = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { data: keyInfo } = await supabase.rpc("has_api_keys", { _user_id: session.user.id });
+    const { data: keyInfo } = await supabase.rpc("has_api_keys");
     if (keyInfo) {
       const info = keyInfo as { has_gemini: boolean; has_grsai: boolean; preferred_api: string };
       setPreferredApi((info.preferred_api as "gemini" | "grsai") || "gemini");
