@@ -824,6 +824,14 @@ function getPhotoIntegrationBlock(style: string, hasPhotos: boolean): string {
   if (!hasPhotos) return "";
   const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж', 'Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная'];
   if (!photoStyles.includes(style)) return "";
+  if (style === 'Персонаж') {
+    return `
+REFERENCE PHOTO — CRITICAL for Персонаж:
+Transform the reference to Pixar/Disney 3D style. Preserve EXACTLY: face shape, hair color, hair style, glasses (if present), skin tone, age.
+Same character on ALL 7 slides. First slide ESTABLISHES the character — must match reference.
+DO NOT invent a different face. Copy from reference.
+`;
+  }
   return `
 PHOTO INTEGRATION — CRITICAL:
 The uploaded photos show the expert/author.
@@ -848,13 +856,15 @@ function buildGrsaiPrompt(
   title: string,
   content: string,
   style: string,
-  hasPhotos: boolean,
+  hasReference: boolean,
   characterDescription?: string,
-  accentColor?: string
+  accentColor?: string,
+  useSlide1AsRef?: boolean
 ): string {
   const isFirst = slideNumber === 1;
   const isLast = slideNumber === 7;
   const charHint = characterDescription ? ` Same person: ${characterDescription.substring(0, 120)}.` : "";
+  const slide1RefHint = useSlide1AsRef ? " EXACT same character as reference image. Identical face, hair, clothing." : "";
   const accent = accentColor ? ` Accent color: ${accentColor}.` : "";
   const textBlock = `Text in image (Russian): ${title}. ${(content || "").substring(0, 150)}`;
 
@@ -864,14 +874,14 @@ function buildGrsaiPrompt(
     "Инфографика с экспертом — светлая": `Light infographic. Woman expert from reference in modern office, standing at whiteboard or desk.${charHint} ${textBlock}. Clean design, 4:5 vertical.`,
     "Инфографика с экспертом — тёмная": `Dark infographic, premium style. Woman expert from reference in dark office (#1A1A2E), standing on floor or at desk, soft shadow.${charHint}${accent} White text. ${textBlock}. Photorealistic, no grain, 4:5 vertical.`,
     "Тёмный": `Cinematic dark portrait. Woman from reference in warm dark room, burgundy/amber tones, candlelight.${charHint} ${textBlock}. Film look, 4:5 vertical.`,
-    "Персонаж": `Pixar 3D character, same face as reference. UNIFIED plain background (one color). Thematic icons in background. ${textBlock}. Cartoon 3D, 4:5 vertical.`,
+    "Персонаж": `Pixar 3D character, same face as reference.${charHint} UNIFIED plain background (one color). Thematic icons in background. ${textBlock}.${isFirst ? " CRITICAL: First slide — establish character. Match reference exactly." : ""} Cartoon 3D, 4:5 vertical.`,
     "Схемы & Инфографика": `Infographic diagram, dark background, flowcharts, no person. ${textBlock}. Modern design, 4:5 vertical.`,
     "Сторителлинг": `Story scene, cinematic. ${textBlock}. Photographic, 4:5 vertical.`,
   };
   const base = styleShort[style] || `Professional slide. ${textBlock}. 4:5 vertical, photorealistic.`;
   const cover = isFirst ? " COVER slide, eye-catching." : "";
   const cta = isLast ? " CTA slide, call to action." : "";
-  return `${base}${cover}${cta}`;
+  return `${base}${slide1RefHint}${cover}${cta}`;
 }
 
 async function generateImageGrsai(
@@ -1017,21 +1027,28 @@ async function generateOneSlideImage(
   userPhotos: string[],
   characterDescription?: string,
   autoStyleEnhancement?: string,
-  apiKeys?: { geminiKey: string; grsaiKey: string; preferredApi: string }
+  apiKeys?: { geminiKey: string; grsaiKey: string; preferredApi: string },
+  slide1ImageBase64?: string,
+  slide1MimeType?: string
 ): Promise<{ imageBase64: string; mimeType: string }> {
   const isLastSlide = slideNumber === 7;
   const isFirstSlide = slideNumber === 1;
   const styleDesc = getStyleGuide(style);
   const hasPhotos = userPhotos && userPhotos.length > 0;
-  const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
+  const noPersonStyles = ['Схемы & Инфографика', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
+  // Slide 1 as reference for 2–7: use it instead of user photo for consistency
+  const useSlide1AsRef = slideNumber > 1 && slide1ImageBase64 && slide1ImageBase64.length > 0;
+  const referenceBase64 = useSlide1AsRef ? slide1ImageBase64 : (hasPhotos && needsPhoto ? userPhotos[0] : null);
+  const referenceMime = useSlide1AsRef ? (slide1MimeType || "image/png") : "image/jpeg";
+  const hasReference = !!referenceBase64;
   const personStyles = ['Профессиональный', 'Светлый', 'Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная', 'Тёмный', 'Персонаж'];
   const hasPersonInScene = personStyles.includes(style);
 
   const expertInfographicStyles = ['Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная'];
   const needsCharacterBlock = characterDescription && (
     style === 'Сторителлинг' ||
-    (style === 'Персонаж' && slideNumber > 1) ||
+    style === 'Персонаж' ||
     (expertInfographicStyles.includes(style) && slideNumber > 1)
   );
   const characterBlock = needsCharacterBlock
@@ -1071,7 +1088,7 @@ ${characterBlock}${photoIntegrationBlock}${styleEnhancementBlock}
 Instagram carousel slide ${slideNumber} of 7.
 ${isFirstSlide ? "This is the COVER slide — make it eye-catching and bold." : ""}
 ${isLastSlide ? "This is the CTA slide — make it action-oriented with clear call to action." : ""}
-${hasPhotos && needsPhoto ? "Include a person in the slide that matches the uploaded reference photo." : ""}
+${hasReference ? (useSlide1AsRef ? "CRITICAL: The image above is slide 1 of this carousel. Use the EXACT SAME character — same face, hair, clothing. New scene/content for this slide, but identical person." : "Include a person in the slide that matches the uploaded reference photo.") : ""}
 Professional social media post, high quality, modern design.
 Do NOT add any borders or watermarks.
 
@@ -1087,10 +1104,11 @@ CRITICAL RULE FOR 3D ELEMENTS:
 
   const parts: any[] = [];
 
-  if (hasPhotos && needsPhoto && userPhotos.length > 0) {
-    parts.push({ inlineData: { mimeType: "image/jpeg", data: userPhotos[0] } });
+  if (hasReference && referenceBase64) {
+    const refLabel = useSlide1AsRef ? "Slide 1 of this carousel (reference character)" : "Reference person photo";
+    parts.push({ inlineData: { mimeType: referenceMime, data: referenceBase64 } });
     parts.push({
-      text: `Reference person photo above. Create slide ${slideNumber} with this person featured naturally in the design.\n${prompt}`,
+      text: `${refLabel} above. Create slide ${slideNumber} with this exact same person — identical face, hair, clothing. ${useSlide1AsRef ? "New scene and content for this slide." : "Featured naturally in the design."}\n${prompt}`,
     });
   } else {
     parts.push({ text: prompt });
@@ -1111,11 +1129,13 @@ CRITICAL RULE FOR 3D ELEMENTS:
       title,
       content || "",
       style,
-      hasPhotos && needsPhoto,
+      hasReference,
       characterDescription,
-      parsed?.accent || undefined
+      parsed?.accent || undefined,
+      useSlide1AsRef
     );
-    return await generateImageGrsai(grsaiPrompt, hasPhotos && needsPhoto ? userPhotos : [], grsaiKey);
+    const refForGrsai = hasReference && referenceBase64 ? [referenceBase64] : [];
+    return await generateImageGrsai(grsaiPrompt, refForGrsai, grsaiKey);
   }
 
   const response = await fetch(
@@ -1350,7 +1370,7 @@ ${rawText}`;
 
     // ─── MODE: image ───
     if (mode === "image") {
-      const { slideNumber, title, content, style, userPhotos, characterDescription, autoStyleEnhancement } = body;
+      const { slideNumber, title, content, style, userPhotos, characterDescription, autoStyleEnhancement, slide1ImageBase64, slide1MimeType } = body;
 
       // Check generation limit on first slide only
       if (slideNumber === 1) {
@@ -1395,7 +1415,9 @@ ${rawText}`;
         userPhotos || [],
         characterDescription,
         autoStyleEnhancement,
-        apiKeys
+        apiKeys,
+        slide1ImageBase64,
+        slide1MimeType
       );
       // Сохраняем слайд в Supabase Storage
       let slideUrl = "";

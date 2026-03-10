@@ -67,7 +67,9 @@ async function generateInBatches(
   userPhotos: string[],
   characterDescription: string | undefined,
   callbacks: GenerationCallbacks,
-  autoStyleEnhancement?: string
+  autoStyleEnhancement?: string,
+  slide1ImageBase64?: string,
+  slide1MimeType?: string
 ): Promise<{ slideNumber: number; title: string; content: string; imageBase64: string; mimeType: string }[]> {
   const results: any[] = [];
 
@@ -78,7 +80,7 @@ async function generateInBatches(
     const batchResults = await Promise.all(
       batch.map(async (item) => {
         try {
-          const data = await callEdgeFunction(token, {
+          const body: Record<string, any> = {
             mode: "image",
             slideNumber: item.slideNumber,
             title: item.title,
@@ -87,7 +89,12 @@ async function generateInBatches(
             userPhotos,
             characterDescription,
             autoStyleEnhancement,
-          });
+          };
+          if (slide1ImageBase64) {
+            body.slide1ImageBase64 = slide1ImageBase64;
+            body.slide1MimeType = slide1MimeType || "image/png";
+          }
+          const data = await callEdgeFunction(token, body);
           if (data.imageBase64) {
             callbacks.onSlideReady(item.slideNumber);
             return {
@@ -148,10 +155,12 @@ export async function orchestrateGeneration(
   const isStorytelling = style === "Сторителлинг";
   const isPersonazh = style === "Персонаж";
   const isExpertInfographic = style === "Инфографика с экспертом — светлая" || style === "Инфографика с экспертом — тёмная";
+  const needsSlide1AsRef = isStorytelling || isPersonazh || isExpertInfographic;
   let allSlides: SlideResult[];
 
-  if (isStorytelling) {
-    callbacks.onStatus("Сторителлинг: генерация слайда 1...");
+  if (needsSlide1AsRef) {
+    const statusMsg = isStorytelling ? "Сторителлинг: генерация слайда 1..." : isPersonazh ? "Персонаж: генерация слайда 1..." : "Инфографика: генерация слайда 1...";
+    callbacks.onStatus(statusMsg);
     const slide1Data = await callEdgeFunction(token, {
       mode: "image",
       slideNumber: 1,
@@ -163,7 +172,7 @@ export async function orchestrateGeneration(
     });
     callbacks.onSlideReady(1);
 
-    if (slide1Data.success && slide1Data.imageBase64) {
+    if (isStorytelling && slide1Data.success && slide1Data.imageBase64) {
       callbacks.onStatus("Извлечение описания персонажа...");
       const charData = await callEdgeFunction(token, {
         mode: "describe-character",
@@ -171,6 +180,18 @@ export async function orchestrateGeneration(
         mimeType: slide1Data.mimeType,
       });
       characterDescription = charData.description || "";
+    } else if ((isPersonazh || isExpertInfographic) && userPhotos.length > 0) {
+      callbacks.onStatus("Извлечение описания персонажа из фото...");
+      try {
+        const charData = await callEdgeFunction(token, {
+          mode: "describe-character",
+          imageBase64: userPhotos[0],
+          mimeType: "image/jpeg",
+        });
+        characterDescription = charData.description || "";
+      } catch (e) {
+        console.warn("[orchestrator] describe-character from ref failed:", e);
+      }
     }
 
     const remainingItems = slideTexts.slice(1).map((s, i) => ({
@@ -179,8 +200,20 @@ export async function orchestrateGeneration(
       content: s.content,
     }));
 
+    const slide1Ref = slide1Data.imageBase64 ? slide1Data.imageBase64 : undefined;
+    const slide1Mime = slide1Data.mimeType || "image/png";
+
     const remainingSlides = await generateInBatches(
-      remainingItems, 3, token, style, userPhotos, characterDescription, callbacks, autoStyleEnhancement
+      remainingItems,
+      isStorytelling ? 3 : 1,
+      token,
+      style,
+      userPhotos,
+      characterDescription,
+      callbacks,
+      autoStyleEnhancement,
+      slide1Ref,
+      slide1Mime
     );
 
     allSlides = [
