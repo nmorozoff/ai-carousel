@@ -150,6 +150,21 @@ export async function orchestrateGeneration(
   const isExpertInfographic = style === "Инфографика с экспертом — светлая" || style === "Инфографика с экспертом — тёмная";
   let allSlides: SlideResult[];
 
+  // Персонаж и Инфографика с экспертом: извлекаем описание из референс-фото ДО генерации
+  if ((isPersonazh || isExpertInfographic) && userPhotos.length > 0) {
+    callbacks.onStatus("Извлечение описания персонажа из фото...");
+    try {
+      const charData = await callEdgeFunction(token, {
+        mode: "describe-character",
+        imageBase64: userPhotos[0],
+        mimeType: "image/jpeg",
+      });
+      characterDescription = charData.description || "";
+    } catch (e) {
+      console.warn("[orchestrator] describe-character from ref photo failed:", e);
+    }
+  }
+
   if (isStorytelling) {
     callbacks.onStatus("Сторителлинг: генерация слайда 1...");
     const slide1Data = await callEdgeFunction(token, {
@@ -202,7 +217,7 @@ export async function orchestrateGeneration(
     }));
 
     allSlides = await generateInBatches(
-      items, 1, token, style, userPhotos, undefined, callbacks, autoStyleEnhancement
+      items, 1, token, style, userPhotos, characterDescription || undefined, callbacks, autoStyleEnhancement
     );
   }
 

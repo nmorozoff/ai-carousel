@@ -824,6 +824,14 @@ function getPhotoIntegrationBlock(style: string, hasPhotos: boolean): string {
   if (!hasPhotos) return "";
   const photoStyles = ['Профессиональный', 'Тёмный', 'Светлый', 'Персонаж', 'Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная'];
   if (!photoStyles.includes(style)) return "";
+  if (style === 'Персонаж') {
+    return `
+REFERENCE PHOTO — CRITICAL for Персонаж:
+Transform the reference photo to Pixar/Disney 3D style. Preserve EXACTLY: face shape, hair color, hair style, glasses (if present), skin tone, age.
+Same character on ALL 7 slides. First slide ESTABLISHES the character — must match reference.
+DO NOT invent a different face. Copy from reference.
+`;
+  }
   return `
 PHOTO INTEGRATION — CRITICAL:
 The uploaded photos show the expert/author.
@@ -864,7 +872,7 @@ function buildGrsaiPrompt(
     "Инфографика с экспертом — светлая": `Light infographic. Woman expert from reference in modern office, standing at whiteboard or desk.${charHint} ${textBlock}. Clean design, 4:5 vertical.`,
     "Инфографика с экспертом — тёмная": `Dark infographic, premium style. Woman expert from reference in dark office (#1A1A2E), standing on floor or at desk, soft shadow.${charHint}${accent} White text. ${textBlock}. Photorealistic, no grain, 4:5 vertical.`,
     "Тёмный": `Cinematic dark portrait. Woman from reference in warm dark room, burgundy/amber tones, candlelight.${charHint} ${textBlock}. Film look, 4:5 vertical.`,
-    "Персонаж": `Pixar 3D character, same face as reference. UNIFIED plain background (one color). Thematic icons in background. ${textBlock}. Cartoon 3D, 4:5 vertical.`,
+    "Персонаж": `Pixar 3D character, same face as reference.${charHint} UNIFIED plain background (one color). Thematic icons in background. ${textBlock}.${isFirst ? " CRITICAL: First slide — establish character. Match reference photo exactly." : ""} Cartoon 3D, 4:5 vertical.`,
     "Схемы & Инфографика": `Infographic diagram, dark background, flowcharts, no person. ${textBlock}. Modern design, 4:5 vertical.`,
     "Сторителлинг": `Story scene, cinematic. ${textBlock}. Photographic, 4:5 vertical.`,
   };
@@ -1023,7 +1031,7 @@ async function generateOneSlideImage(
   const isFirstSlide = slideNumber === 1;
   const styleDesc = getStyleGuide(style);
   const hasPhotos = userPhotos && userPhotos.length > 0;
-  const noPersonStyles = ['Схемы & Инфографика', 'Персонаж', 'Сторителлинг'];
+  const noPersonStyles = ['Схемы & Инфографика', 'Сторителлинг'];
   const needsPhoto = !noPersonStyles.includes(style);
   const personStyles = ['Профессиональный', 'Светлый', 'Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная', 'Тёмный', 'Персонаж'];
   const hasPersonInScene = personStyles.includes(style);
@@ -1031,7 +1039,7 @@ async function generateOneSlideImage(
   const expertInfographicStyles = ['Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная'];
   const needsCharacterBlock = characterDescription && (
     style === 'Сторителлинг' ||
-    (style === 'Персонаж' && slideNumber > 1) ||
+    style === 'Персонаж' ||
     (expertInfographicStyles.includes(style) && slideNumber > 1)
   );
   const characterBlock = needsCharacterBlock
