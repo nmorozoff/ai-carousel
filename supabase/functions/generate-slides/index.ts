@@ -196,7 +196,7 @@ ${funnelText}
   const finishReason = data.candidates?.[0]?.finishReason || "";
   const slides = parseJsonResponse(rawText);
 
-  if (Array.isArray(slides) && slides.length < 7 && (finishReason === "MAX_TOKENS" || slides.length < 5)) {
+  if (Array.isArray(slides) && slides.length < 7) {
     console.warn(`Got only ${slides.length} slides (finishReason: ${finishReason}), retrying...`);
     try {
       const retryResponse = await fetch(
@@ -675,34 +675,24 @@ natural skin texture, film grain at 15% opacity, subtle vignette at edges`,
 
     'Персонаж': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
-CRITICAL — CHARACTER DESCRIPTION (fix once):
-Before generating any slides, create this exact character and use her on ALL 7 slides:
-Woman, Pixar/Disney 3D style.
-Appearance — use ONLY the uploaded reference photo to determine:
-- Hair color, length and style — copy exactly from photo
-- Glasses — only if visible in photo
-- Age — match the person in photo
-- Skin tone — match exactly
-- Style: professional blazer matching her coloring
-DO NOT invent appearance. Copy from photo.
-THIS EXACT CHARACTER on every single slide.
-Same hair. Same face. Same age. Consistent.
-DO NOT make her younger or change appearance.
-DO NOT remove glasses.
-DO NOT change hair color.
+CRITICAL — CHARACTER (персонаж вау):
+ONE character on ALL 7 slides. Pixar/Disney 3D style — smooth, expressive, polished.
+Appearance — from reference photo if provided:
+- Hair, glasses, age, skin tone — copy exactly from photo
+- Clothing — match reference photo. Keep SAME outfit/color on all 7 slides.
+If no reference: professional or casual attire, consistent across slides.
+DO NOT invent appearance when photo exists. THIS EXACT CHARACTER every slide.
+DO NOT use photorealism. Stylized 3D only. Large expressive eyes, soft lighting.
+Dynamic poses per slide: gesturing, pointing, arms open, thoughtful — support the message.
 
-BACKGROUND — vary per slide, choose from warm cozy scenes in 3D Pixar style:
-- Cozy home library with warm bookshelves, soft lamp, cream walls
-- Bright Scandinavian office, white desk, plants, large window
-- Warm café corner, wooden table, pastel walls, morning light
-- Cozy living room, cream sofa, bookshelf, candle, warm tones
-- Airy studio with white brick, wooden floor, soft daylight
-- Modern kitchen, white and wood tones, flowers, morning sun
-- Peaceful garden terrace, flowers, soft warm light
-All backgrounds in warm cream / ivory / peach / beige family.
-Character is INSIDE the scene — sitting, standing, naturally placed.
-NO plain gradient backgrounds. NO flat color backgrounds.
-NO mint, NO lavender, NO purple, NO blue, NO teal. Ever.
+BACKGROUND — CRITICAL: UNIFIED across ALL 7 slides.
+ONE dominant color or soft gradient (e.g. light blue #E8F4F8, light grey #F5F5F5, peach #F8E4D8).
+Same background on every slide. NO different scenes per slide. NO varied interiors.
+
+THEMATIC ICONS — фоны по смыслу со значками:
+Add 3–6 subtle semi-transparent icons relevant to the slide content. In background or around blocks.
+Examples: heart, clipboard, lightbulb, chart — adapt to topic. Light grey/white, 15–25% opacity.
+Optional: soft line patterns (waveform, dots) relevant to the message.
 
 TYPOGRAPHY — CRITICAL:
 Same font on ALL 7 slides.
@@ -728,15 +718,14 @@ ZERO English words anywhere on any slide.
 If a concept has no Russian equivalent — transliterate it into Russian.
 
 CHARACTER CONSISTENCY — CRITICAL:
-When characterDescription is provided (slides 2–7): use EXACTLY that character. Same hair, same face, same glasses, same blazer color.
-Keep clothing STYLE identical. Blazer: SAME color on ALL 7 slides (e.g. orange #FF7043).
-Same hair color, same hair length, same hair style on every slide.
-DO NOT vary skin tone. DO NOT change glasses. DO NOT make her younger or older.
+When characterDescription is provided: use EXACTLY that character.
+Same hair, same face, same clothing color/style on ALL 7 slides.
+DO NOT vary skin tone. DO NOT change glasses. DO NOT make younger or older.
 Base all slides on the character established in slide 1.
 Slides 6 and 7 MUST look like the SAME carousel as slides 1–5 — same fonts, same character, same visual language.
 
 RENDER QUALITY:
-8K resolution, no AI artifacts, natural skin texture`,
+8K resolution, no AI artifacts, Pixar-style 3D render`,
 
     'Схемы & Инфографика': `FORMAT: 1080x1350px vertical (4:5 ratio). NOT square.
 
@@ -875,7 +864,7 @@ function buildGrsaiPrompt(
     "Инфографика с экспертом — светлая": `Light infographic. Woman expert from reference in modern office, standing at whiteboard or desk.${charHint} ${textBlock}. Clean design, 4:5 vertical.`,
     "Инфографика с экспертом — тёмная": `Dark infographic, premium style. Woman expert from reference in dark office (#1A1A2E), standing on floor or at desk, soft shadow.${charHint}${accent} White text. ${textBlock}. Photorealistic, no grain, 4:5 vertical.`,
     "Тёмный": `Cinematic dark portrait. Woman from reference in warm dark room, burgundy/amber tones, candlelight.${charHint} ${textBlock}. Film look, 4:5 vertical.`,
-    "Персонаж": `3D illustrated character from reference photo. Same face and style. ${textBlock}. Cartoon 3D render, 4:5 vertical.`,
+    "Персонаж": `Pixar 3D character, same face as reference. UNIFIED plain background (one color). Thematic icons in background. ${textBlock}. Cartoon 3D, 4:5 vertical.`,
     "Схемы & Инфографика": `Infographic diagram, dark background, flowcharts, no person. ${textBlock}. Modern design, 4:5 vertical.`,
     "Сторителлинг": `Story scene, cinematic. ${textBlock}. Photographic, 4:5 vertical.`,
   };
@@ -1042,8 +1031,8 @@ async function generateOneSlideImage(
   const expertInfographicStyles = ['Инфографика с экспертом — светлая', 'Инфографика с экспертом — тёмная'];
   const needsCharacterBlock = characterDescription && (
     style === 'Сторителлинг' ||
-    (['Персонаж', ...expertInfographicStyles].includes(style) && slideNumber >= 1) ||
-    ['Профессиональный', 'Светлый', 'Тёмный'].includes(style)
+    (style === 'Персонаж' && slideNumber > 1) ||
+    (expertInfographicStyles.includes(style) && slideNumber > 1)
   );
   const characterBlock = needsCharacterBlock
     ? `\nMAIN CHARACTER CONSISTENCY — CRITICAL:\nUse EXACTLY this character in this slide. Do NOT vary.\n${characterDescription}\nSame face, same hair color, same hair style, same glasses, same skin tone, same age.\nSame cardigan/blazer color on ALL slides (e.g. dark green, sage, olive). Do NOT change or replace this character.\n`

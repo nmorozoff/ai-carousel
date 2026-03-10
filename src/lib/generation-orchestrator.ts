@@ -150,21 +150,8 @@ export async function orchestrateGeneration(
   const isExpertInfographic = style === "Инфографика с экспертом — светлая" || style === "Инфографика с экспертом — тёмная";
   let allSlides: SlideResult[];
 
-  if (isStorytelling || isPersonazh || isExpertInfographic) {
-    const needsPersonFromReference = (isPersonazh || isExpertInfographic) && userPhotos.length > 0;
-
-    if (needsPersonFromReference) {
-      callbacks.onStatus("Извлечение описания персонажа...");
-      const charData = await callEdgeFunction(token, {
-        mode: "describe-character",
-        imageBase64: userPhotos[0],
-        mimeType: "image/jpeg",
-      });
-      characterDescription = charData.description || "";
-    }
-
-    const statusMsg = isStorytelling ? "Сторителлинг: генерация слайда 1..." : isPersonazh ? "Персонаж: генерация слайда 1..." : "Инфографика: генерация слайда 1...";
-    callbacks.onStatus(statusMsg);
+  if (isStorytelling) {
+    callbacks.onStatus("Сторителлинг: генерация слайда 1...");
     const slide1Data = await callEdgeFunction(token, {
       mode: "image",
       slideNumber: 1,
@@ -172,12 +159,11 @@ export async function orchestrateGeneration(
       content: slideTexts[0].content,
       style,
       userPhotos,
-      characterDescription: needsPersonFromReference ? characterDescription : undefined,
       autoStyleEnhancement,
     });
     callbacks.onSlideReady(1);
 
-    if (isStorytelling && slide1Data.success && slide1Data.imageBase64) {
+    if (slide1Data.success && slide1Data.imageBase64) {
       callbacks.onStatus("Извлечение описания персонажа...");
       const charData = await callEdgeFunction(token, {
         mode: "describe-character",
@@ -187,8 +173,6 @@ export async function orchestrateGeneration(
       characterDescription = charData.description || "";
     }
 
-    const batchSize = isStorytelling ? 3 : 1;
-    // Generate slides 2-7
     const remainingItems = slideTexts.slice(1).map((s, i) => ({
       slideNumber: i + 2,
       title: s.title,
@@ -196,7 +180,7 @@ export async function orchestrateGeneration(
     }));
 
     const remainingSlides = await generateInBatches(
-      remainingItems, batchSize, token, style, userPhotos, characterDescription, callbacks, autoStyleEnhancement
+      remainingItems, 3, token, style, userPhotos, characterDescription, callbacks, autoStyleEnhancement
     );
 
     allSlides = [
@@ -211,19 +195,6 @@ export async function orchestrateGeneration(
       ...remainingSlides,
     ];
   } else {
-    const personFromPhotoStyles = ["Профессиональный", "Светлый", "Тёмный"];
-    const needsCharacterFromPhoto = personFromPhotoStyles.includes(style) && userPhotos.length > 0;
-
-    if (needsCharacterFromPhoto) {
-      callbacks.onStatus("Извлечение описания персонажа...");
-      const charData = await callEdgeFunction(token, {
-        mode: "describe-character",
-        imageBase64: userPhotos[0],
-        mimeType: "image/jpeg",
-      });
-      characterDescription = charData.description || "";
-    }
-
     const items = slideTexts.map((s, i) => ({
       slideNumber: i + 1,
       title: s.title,
@@ -231,7 +202,7 @@ export async function orchestrateGeneration(
     }));
 
     allSlides = await generateInBatches(
-      items, 1, token, style, userPhotos, needsCharacterFromPhoto ? characterDescription : undefined, callbacks, autoStyleEnhancement
+      items, 1, token, style, userPhotos, undefined, callbacks, autoStyleEnhancement
     );
   }
 
