@@ -12,7 +12,8 @@ const plans = [
     desc: "Пост, транскрибация рилс, тезисы или мысли → готовые PNG-слайды автоматически",
     highlight: true,
     features: [
-      "Генерация до 200 каруселей",
+      "Генерация 100 каруселей",
+      "Возможность докупить дополнительные генерации",
       "Готовые PNG слайды 1080×1350 (4:5) — сразу в соцсети",
       "Готовое описание для карусели",
       "Очистка метаданных — соцсети не распознают ИИ и не режут охваты",
@@ -25,9 +26,10 @@ const plans = [
     name: "Под ключ",
     price: "10 000 ₽",
     icon: Copy,
-    desc: "Индивидуальная установка сервиса с полным сопровождением",
+    desc: "Индивидуальная разработка под ключ",
     highlight: false,
     features: [
+      "Exclusive",
       "Пожизненное пользование сервисом",
       "Свой API-ключ для генерации на 90 дней",
       "Разработка одного индивидуального стиля",
@@ -70,12 +72,12 @@ const Pricing = () => (
               plan.highlight ? "border-primary/40" : ""
             }`}
           >
-            {plan.highlight && (
+            {(plan.highlight || plan.name === "Под ключ") && (
               <div className="absolute top-0 left-0 right-0 bg-gradient-primary text-primary-foreground text-xs font-bold py-1.5 uppercase tracking-wider">
-                Популярный
+                {plan.name === "Под ключ" ? "Exclusive" : "Популярный"}
               </div>
             )}
-            <div className={`relative z-10 ${plan.highlight ? "pt-4" : ""}`}>
+            <div className={`relative z-10 ${plan.highlight || plan.name === "Под ключ" ? "pt-4" : ""}`}>
               <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center mx-auto mb-4">
                 <plan.icon className="w-6 h-6 text-primary-foreground" />
               </div>

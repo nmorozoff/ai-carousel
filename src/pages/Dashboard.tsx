@@ -573,11 +573,14 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">{genUsed} из {genLimit}</span>
             </div>
             <Progress value={Math.min(100, (genUsed / genLimit) * 100)} className="h-2 mb-2" />
-            {daysLeft !== null && (
-              <p className="text-xs text-muted-foreground">
-                До окончания тарифа: {daysLeft} {daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              {daysLeft !== null && (
+                <p className="text-xs text-muted-foreground">
+                  До окончания тарифа: {daysLeft} {daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"}
+                </p>
+              )}
+              <TelegramSupportLink variant="minimal" label="Докупить генерации" iconSize={12} className="text-xs" />
+            </div>
           </motion.div>
         ) : (
           <motion.div

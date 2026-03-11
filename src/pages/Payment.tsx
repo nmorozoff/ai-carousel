@@ -18,7 +18,8 @@ const plans = [
     desc: "Готовые PNG-слайды автоматически",
     highlight: true,
     features: [
-      "Генерация до 200 каруселей",
+      "Генерация 100 каруселей",
+      "Возможность докупить дополнительные генерации",
       "Готовое описание для карусели",
       "Очистка метаданных",
       "Скачивание ZIP одним кликом",
@@ -30,9 +31,10 @@ const plans = [
     price: "10 000 ₽",
     amount: 10000,
     icon: Copy,
-    desc: "Индивидуальная установка с сопровождением",
+    desc: "Индивидуальная разработка под ключ",
     highlight: false,
     features: [
+      "Exclusive",
       "Пожизненное пользование",
       "API-ключ на 90 дней",
       "Индивидуальный стиль",
@@ -147,12 +149,12 @@ const Payment = () => {
                     : "border-border/50 hover:border-primary/30"
                 }`}
               >
-                {plan.highlight && (
+                {(plan.highlight || plan.id === "turnkey") && (
                   <div className="absolute top-0 left-0 right-0 bg-gradient-primary text-primary-foreground text-[10px] font-bold py-1 uppercase tracking-wider text-center">
-                    Популярный
+                    {plan.id === "turnkey" ? "Exclusive" : "Популярный"}
                   </div>
                 )}
-                <div className={plan.highlight ? "pt-3" : ""}>
+                <div className={(plan.highlight || plan.id === "turnkey") ? "pt-3" : ""}>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                       <Icon className="w-5 h-5 text-primary-foreground" />

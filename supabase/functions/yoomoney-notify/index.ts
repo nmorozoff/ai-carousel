@@ -90,6 +90,31 @@ serve(async (req) => {
 
     console.log("Payment updated successfully:", data[0]);
 
+    const payment = data[0] as { user_id: string; plan: string };
+    const { user_id, plan } = payment;
+
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    const subRow = {
+      plan: plan === "full_ai" ? "full_ai" : "turnkey",
+      status: "active",
+      starts_at: now.toISOString(),
+      expires_at: expiresAt.toISOString(),
+    };
+
+    const { data: existingSub } = await supabase.from("subscriptions").select("id").eq("user_id", user_id).maybeSingle();
+    if (existingSub) {
+      await supabase.from("subscriptions").update(subRow).eq("user_id", user_id);
+    } else {
+      await supabase.from("subscriptions").insert({ user_id, ...subRow });
+    }
+
+    if (plan === "full_ai") {
+      await supabase.from("profiles").update({ generation_limit: 100 }).eq("user_id", user_id);
+    }
+
     // Return 200 OK (required by YooMoney)
     return new Response("OK", { status: 200 });
   } catch (err) {
