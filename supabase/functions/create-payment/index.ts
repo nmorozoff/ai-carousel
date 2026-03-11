@@ -87,7 +87,10 @@ Deno.serve(async (req) => {
     }
 
     const wallet = yoomoneyWallet || "";
-    const successUrl = `${siteUrl || "https://ai-carousell.lovable.app"}/dashboard?payment=success`;
+    const baseUrl = siteUrl || "https://ai-carousell.lovable.app";
+    const successUrl = plan === "turnkey"
+      ? `${baseUrl}/payment-success?plan=turnkey`
+      : `${baseUrl}/dashboard?payment=success`;
 
     // YooMoney quickpay form data
     const formData = {
