@@ -749,23 +749,28 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
-          className="flex items-center justify-between glass rounded-2xl px-4 py-3 mb-4"
+          className="glass rounded-2xl px-4 py-3 mb-4"
         >
-          <span className="text-xs text-muted-foreground">Сервер генерации:</span>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <button
-              onClick={() => switchApi("gemini")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${preferredApi === "gemini" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Основной
-            </button>
-            <button
-              onClick={() => switchApi("grsai")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${preferredApi === "grsai" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Резервный
-            </button>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Сервер генерации:</span>
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <button
+                onClick={() => switchApi("gemini")}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${preferredApi === "gemini" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Основной
+              </button>
+              <button
+                onClick={() => switchApi("grsai")}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${preferredApi === "grsai" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Резервный
+              </button>
+            </div>
           </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Резервный API пока в стадии разработки — рекомендуем пользоваться основным API.
+          </p>
         </motion.div>
 
         {/* Кнопка генерации */}

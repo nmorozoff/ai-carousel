@@ -363,7 +363,13 @@ const Admin = () => {
                               <h3 className="text-sm font-heading font-semibold mb-3 flex items-center gap-1.5"><Zap className="w-4 h-4 text-accent" />Настройки API</h3>
                               <div className="space-y-3">
                                 <div><p className="text-xs text-muted-foreground mb-1">Основной API (ключ)</p><Input className="h-7 text-xs font-mono" placeholder="Вставьте ключ..." value={apiKeys.gemini} onChange={(e) => setApiKeys(k => ({ ...k, gemini: e.target.value }))} /></div>
-                                <div><p className="text-xs text-muted-foreground mb-1">Резервный 1 (ключ)</p><Input className="h-7 text-xs font-mono" placeholder="Вставьте ключ..." value={apiKeys.grsai} onChange={(e) => setApiKeys(k => ({ ...k, grsai: e.target.value }))} /></div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Резервный 1 (ключ)</p>
+                                  <Input className="h-7 text-xs font-mono" placeholder="Вставьте ключ..." value={apiKeys.grsai} onChange={(e) => setApiKeys(k => ({ ...k, grsai: e.target.value }))} />
+                                  <p className="mt-1 text-[11px] text-muted-foreground">
+                                    Резервный API пока в стадии разработки — рекомендуем пользоваться основным API.
+                                  </p>
+                                </div>
                                 <div>
                                   <p className="text-xs text-muted-foreground mb-1">Активный API</p>
                                   <div className="flex gap-2">
