@@ -869,19 +869,20 @@ function buildGrsaiPrompt(
   const textBlock = `Text in image (Russian): ${title}. ${(content || "").substring(0, 150)}`;
 
   const styleShort: Record<string, string> = {
-    "Профессиональный": `Professional psychology office. Woman from reference in cozy office, armchair, bookshelf, warm light.${charHint} ${textBlock}. Photorealistic, 4:5 vertical.`,
-    "Светлый": `Light Scandinavian interior. Woman from reference in bright room, white walls, plants, soft daylight.${charHint} ${textBlock}. Editorial photo, 4:5 vertical.`,
-    "Инфографика с экспертом — светлая": `Light infographic. Woman expert from reference in modern office, standing at whiteboard or desk.${charHint} ${textBlock}. Clean design, 4:5 vertical.`,
-    "Инфографика с экспертом — тёмная": `Dark infographic, premium style. Woman expert from reference in dark office (#1A1A2E), standing on floor or at desk, soft shadow.${charHint}${accent} White text. ${textBlock}. Photorealistic, no grain, 4:5 vertical.`,
-    "Тёмный": `Cinematic dark portrait. Woman from reference in warm dark room, burgundy/amber tones, candlelight.${charHint} ${textBlock}. Film look, 4:5 vertical.`,
-    "Персонаж": `Pixar 3D character, same face as reference.${charHint} UNIFIED plain background (one color). Thematic icons in background. ${textBlock}.${isFirst ? " CRITICAL: First slide — establish character. Match reference exactly." : ""} Cartoon 3D, 4:5 vertical.`,
-    "Схемы & Инфографика": `Infographic diagram, dark background, flowcharts, no person. ${textBlock}. Modern design, 4:5 vertical.`,
-    "Сторителлинг": `Story scene, cinematic. ${textBlock}. Photographic, 4:5 vertical.`,
+    "Профессиональный": `Professional psychology office. Woman from reference in one cozy office scene, armchair, bookshelf, warm light on all slides.${charHint} ${textBlock}. Photorealistic, 4:5 vertical.`,
+    "Светлый": `Light Scandinavian interior. Woman from reference in bright room, white walls, plants, soft daylight, same location across all slides.${charHint} ${textBlock}. Editorial photo, 4:5 vertical.`,
+    "Инфографика с экспертом — светлая": `Light infographic. Woman expert from reference in the same modern office on every slide, standing at whiteboard or desk.${charHint} ${textBlock}. Clean design, 4:5 vertical.`,
+    "Инфографика с экспертом — тёмная": `Dark premium infographic, not mystical. Woman expert from reference in the same dark office (#1A1A2E) on all slides, standing or sitting by one wooden desk, soft shadows.${charHint}${accent} Clear space for Russian text and simple charts. ${textBlock}. Photorealistic, 4:5 vertical.`,
+    "Тёмный": `Dark premium coaching portrait, not mystical and not funeral. Same deep plum wall and wooden table scene on ALL slides. Woman from reference sits or leans at the same table, calm, confident, hopeful.${charHint} ${textBlock}. Photorealistic, 4:5 vertical.`,
+    "Персонаж": `Pixar 3D character, same face as reference.${charHint} UNIFIED plain background (one color) on every slide. Thematic icons in background. ${textBlock}.${isFirst ? " CRITICAL: First slide — establish character. Match reference exactly." : ""} Cartoon 3D, 4:5 vertical.`,
+    "Схемы & Инфографика": `Infographic diagram, dark background, flowcharts, no person. Same visual style and color palette on all slides. ${textBlock}. Modern design, 4:5 vertical.`,
+    "Сторителлинг": `Story scene, cinematic, same overall color palette and atmosphere across all slides. ${textBlock}. Photographic, 4:5 vertical.`,
   };
   const base = styleShort[style] || `Professional slide. ${textBlock}. 4:5 vertical, photorealistic.`;
   const cover = isFirst ? " COVER slide, eye-catching." : "";
   const cta = isLast ? " CTA slide, call to action." : "";
-  return `${base}${slide1RefHint}${cover}${cta}`;
+  const consistency = " Same background style, lighting, camera angle and character appearance across all 7 slides. No candles, no flames, no religious or ritual elements anywhere.";
+  return `${base}${slide1RefHint}${cover}${cta}${consistency}`;
 }
 
 async function generateImageGrsai(
