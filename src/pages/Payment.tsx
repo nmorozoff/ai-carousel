@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Copy, Sparkles, LogIn, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Copy, PenTool, Sparkles, LogIn, Check } from "lucide-react";
 import { TelegramSupportLink } from "@/components/TelegramSupportLink";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Session } from "@supabase/supabase-js";
@@ -41,6 +41,21 @@ const plans = [
       "Запуск до 3-х дней",
     ],
   },
+  {
+    id: "done_for_you",
+    name: "Готовая карусель",
+    price: "150 ₽",
+    amount: 150,
+    icon: PenTool,
+    desc: "Вы присылаете тезисы, тексты или рилсы — мы создаём карусель за вас",
+    highlight: false,
+    features: [
+      "150 ₽ за одну карусель",
+      "Вы предоставляете контент (тезисы, тексты, рилсы)",
+      "Готовые PNG-слайды 1080×1350",
+      "По всем вопросам — в техподдержку",
+    ],
+  },
 ];
 
 const Payment = () => {
@@ -64,7 +79,7 @@ const Payment = () => {
   }, []);
 
   const handlePay = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || selectedPlan === "done_for_you") return;
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -135,10 +150,11 @@ const Payment = () => {
           Выберите тариф
         </h2>
 
-        <div className="grid sm:grid-cols-2 gap-4 mb-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {plans.map((plan) => {
             const isSelected = selectedPlan === plan.id;
             const Icon = plan.icon;
+            const hasBanner = plan.highlight || plan.id === "turnkey";
             return (
               <button
                 key={plan.id}
@@ -149,12 +165,12 @@ const Payment = () => {
                     : "border-border/50 hover:border-primary/30"
                 }`}
               >
-                {(plan.highlight || plan.id === "turnkey") && (
+                {hasBanner && (
                   <div className="absolute top-0 left-0 right-0 bg-gradient-primary text-primary-foreground text-[10px] font-bold py-1 uppercase tracking-wider text-center">
                     {plan.id === "turnkey" ? "Exclusive" : "Популярный"}
                   </div>
                 )}
-                <div className={(plan.highlight || plan.id === "turnkey") ? "pt-3" : ""}>
+                <div className={hasBanner ? "pt-3" : ""}>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                       <Icon className="w-5 h-5 text-primary-foreground" />
@@ -165,7 +181,9 @@ const Payment = () => {
                     </div>
                   </div>
                   <div className="text-2xl font-heading font-bold text-gradient mb-1">{plan.price}</div>
-                  <p className="text-xs text-muted-foreground mb-3">{plan.highlight ? "в месяц" : "единоразово"}</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {plan.highlight ? "в месяц" : plan.id === "done_for_you" ? "за карусель" : "единоразово"}
+                  </p>
                   <ul className="space-y-1.5">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-xs">
@@ -181,29 +199,44 @@ const Payment = () => {
         </div>
 
         <div className="max-w-sm mx-auto">
-          {checkingAuth ? (
-            <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
-          ) : session ? (
-            <Button
-              onClick={handlePay}
-              disabled={loading || !selectedPlan}
-              className="w-full bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity h-12 text-base"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Оплатить через ЮMoney"}
-            </Button>
+          {selectedPlan === "done_for_you" ? (
+            <div className="flex flex-col items-center gap-4 w-full">
+              <p className="text-sm text-muted-foreground text-center">
+                Пришлите тезисы, тексты или рилсы в техподдержку — мы создадим карусель за вас. 150 ₽ за одну карусель.
+              </p>
+              <TelegramSupportLink
+                variant="button"
+                label="Написать в техподдержку"
+                className="w-full flex justify-center h-12 text-base rounded-xl bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity"
+              />
+            </div>
           ) : (
-            <Link to={`/auth?redirect=/payment${selectedPlan ? `?plan=${selectedPlan}` : ""}`}>
-              <Button className="w-full bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity h-12 text-base gap-2">
-                <LogIn className="w-4 h-4" />
-                Войти и оплатить
-              </Button>
-            </Link>
-          )}
+            <>
+              {checkingAuth ? (
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+              ) : session ? (
+                <Button
+                  onClick={handlePay}
+                  disabled={loading || !selectedPlan}
+                  className="w-full bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity h-12 text-base"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Оплатить через ЮMoney"}
+                </Button>
+              ) : (
+                <Link to={`/auth?redirect=/payment${selectedPlan ? `?plan=${selectedPlan}` : ""}`}>
+                  <Button className="w-full bg-gradient-primary text-primary-foreground border-0 hover:opacity-90 transition-opacity h-12 text-base gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Войти и оплатить
+                  </Button>
+                </Link>
+              )}
 
-          <div className="mt-6 pt-6 border-t border-border/50 flex flex-col items-center gap-3">
-            <p className="text-xs text-muted-foreground">Вопросы по оплате?</p>
-            <TelegramSupportLink variant="button" label="Написать в поддержку" />
-          </div>
+              <div className="mt-6 pt-6 border-t border-border/50 flex flex-col items-center gap-3">
+                <p className="text-xs text-muted-foreground">Вопросы по оплате?</p>
+                <TelegramSupportLink variant="button" label="Написать в поддержку" />
+              </div>
+            </>
+          )}
 
           <Link to="/" className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground mt-4 transition-colors">
             <ArrowLeft className="w-3 h-3" />
